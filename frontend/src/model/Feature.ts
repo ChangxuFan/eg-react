@@ -1,7 +1,7 @@
 import ChromosomeInterval, { IChromosomeInterval } from "./interval/ChromosomeInterval";
 import NavigationContext from "./NavigationContext";
 
-type Strand = "+" | "-" | string;
+export type Strand = "+" | "-" | string;
 
 /**
  * The properties of Feature without the methods.
@@ -23,6 +23,7 @@ export const REVERSE_STRAND_CHAR = "-";
  */
 export class Feature {
     name: string; // - name of the feature
+    score?: any;
     /**
      * Makes a new instance with specified name and locus.  Empty names are valid.  If given `undefined` or `null`, it
      * defaults to the locus as a string.
@@ -41,7 +42,7 @@ export class Feature {
         return {
             name: this.name,
             locus: this.getLocus().serialize(),
-            strand: this.strand
+            strand: this.strand,
         };
     }
 
@@ -131,6 +132,49 @@ export class NumericalFeature extends Feature {
 }
 
 /**
+ * Everything a Feature is, plus a `color` prop.
+ *
+ * @author Daofeng Li
+ */
+export class ColoredFeature extends Feature {
+    color: string;
+
+    /**
+     * Sets value and returns this.
+     *
+     * @param {number} value - value to attach to this instance.
+     * @return {this}
+     */
+    withColor(color: string): this {
+        this.color = color;
+        return this;
+    }
+}
+
+/**
+ * a JasparFeature.
+ *
+ * @author Daofeng Li
+ */
+export class JasparFeature extends Feature {
+    score: number;
+    matrixId: string;
+
+    /**
+     * Sets jaspar tf name and score and returns this.
+     *
+     * @param {number} score - jaspar score.
+     * @param {string} matrixId - jaspar matrixId.
+     * @return {this}
+     */
+    withJaspar(score: number, matrixId: string): this {
+        this.score = score;
+        this.matrixId = matrixId;
+        return this;
+    }
+}
+
+/**
  * Everything a Feature is, plus a `values` prop.
  *
  * @author Daofeng Li
@@ -146,6 +190,29 @@ export class NumericalArrayFeature extends Feature {
      */
     withValues(values: readonly number[]): this {
         this.values = values.slice();
+        return this;
+    }
+}
+
+/**
+ * the feature for a fiber or molecular, with the on and off relative position from start.
+ *
+ * @author Daofeng Li
+ */
+export class Fiber extends Feature {
+    ons: number[];
+    offs: number[];
+
+    /**
+     * Sets values and returns this.
+     *
+     * @param {number[]} values - value to attach to this instance.
+     * @return {this}
+     */
+    withFiber(score: number | string, onString: string, offString: string): this {
+        this.ons = onString !== "." ? JSON.parse("[" + onString + "]") : [];
+        this.offs = offString !== "." ? JSON.parse("[" + offString + "]") : [];
+        this.score = score;
         return this;
     }
 }

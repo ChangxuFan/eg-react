@@ -8,7 +8,7 @@ import { readFileAsText, HELP_LINKS } from "../util";
 import { TrackOptionsUI } from "./trackManagers/TrackOptionsUI";
 import { TYPES_DESC } from "./trackManagers/CustomTrackAdder";
 
-const ONE_TRACK_FILE_LIST = ["bigwig", "bigbed", "hic", "biginteract", "g3d", "dynseq"]; // all lower case
+const ONE_TRACK_FILE_LIST = ["bigwig", "bigbed", "hic", "biginteract", "g3d", "dynseq", "rgbpeak"]; // all lower case
 
 /**
  * handles local track file upload using FileReader API
@@ -36,6 +36,9 @@ export class TrackUpload extends React.Component {
         const indexSuffix = fileType === "bam" ? ".bai" : ".tbi";
         this.setState({ fileType, indexSuffix });
     };
+    handleAssemblyChange = (event) => {
+        this.setState({ assembly: event.target.value });
+    };
 
     handleFileUpload = async (event) => {
         this.setState({ msg: "Uploading track..." });
@@ -54,6 +57,7 @@ export class TrackUpload extends React.Component {
                         label: file.name,
                         files: null,
                         options,
+                        metadata: { genome: this.state.assembly }
                     })
             );
         } else {
@@ -173,18 +177,23 @@ export class TrackUpload extends React.Component {
                         <optgroup label="select only the track file (can select many of same type)">
                             <option value="bigWig">bigWig - {TYPES_DESC.bigWig}</option>
                             <option value="bigBed">bigBed - {TYPES_DESC.bigBed}</option>
+                            <option value="rgbpeak">RgbPeak - {TYPES_DESC.rgbpeak}</option>
                             <option value="hic">HiC - {TYPES_DESC.hic}</option>
                             <option value="bigInteract">bigInteract - {TYPES_DESC.bigInteract}</option>
                             <option value="dynseq">dynseq - {TYPES_DESC.dynseq}</option>
                             <option value="g3d">G3D - {TYPES_DESC.g3d}</option>
+                            {/* <option value="jaspar">Jaspar - {TYPES_DESC.jaspar}</option> */}
                         </optgroup>
                         <optgroup label="select both the track file and index file (only select 1 pair)">
                             <option value="bedGraph">bedGraph - {TYPES_DESC.bedGraph}</option>
                             <option value="methylC">methylC - {TYPES_DESC.methylC}</option>
+                            <option value="modbed">modbed - {TYPES_DESC.modbed}</option>
                             <option value="categorical">categorical - {TYPES_DESC.categorical}</option>
                             <option value="bed">bed - {TYPES_DESC.bed}</option>
+                            <option value="vcf">vcf - {TYPES_DESC.vcf}</option>
                             <option value="refBed">refBed - {TYPES_DESC.refBed}</option>
                             <option value="longrange">longrange - {TYPES_DESC.longrange}</option>
+                            <option value="longrangecolor">longrange - {TYPES_DESC.longrangecolor}</option>
                             <option value="qbed">qBED - {TYPES_DESC.qBED}</option>
                             <option value="bam">BAM - {TYPES_DESC.bam}</option>
                         </optgroup>
@@ -192,8 +201,14 @@ export class TrackUpload extends React.Component {
                 </label>
                 <br />
                 <TrackOptionsUI onGetOptions={(value) => this.getOptions(value)} />
+                <label htmlFor="Assembly">
+                    <h3>2. Choose assembly:</h3>
+                    <input value={this.state.assembly} onChange={this.handleAssemblyChange}>
+                    </input>
+                </label>
+                <br />
                 <label htmlFor="trackFile">
-                    <h3>2. Choose track file:</h3>
+                    <h3>3. Choose track file:</h3>
                     <input type="file" id="trackFile" multiple onChange={this.handleFileUpload} />
                 </label>
             </div>

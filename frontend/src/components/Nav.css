@@ -16,12 +16,12 @@ followint this example https://codepen.io/EightArmsHQ/pen/mvqJwg?editors=1100
     display: flex;
     flex-grow: 1;
     flex-wrap: wrap;
-    .element {
+    /* .element {
         min-width: 33%;
         max-width: 100%;
         flex-grow: 1;
         flex-basis: calc(var(--multiplier) * 999);
-    }
+    } */
 }
 
 .element {
@@ -29,14 +29,14 @@ followint this example https://codepen.io/EightArmsHQ/pen/mvqJwg?editors=1100
 }
 
 .Nav-genome {
-    opacity: 0.3;
+    opacity: 0.6;
     text-align: center;
     cursor: pointer;
     width: 180px;
 }
 
 .Nav-genome:hover {
-    opacity: 0.8;
+    opacity: 0.9;
 }
 
 .Nav-center {
@@ -47,6 +47,8 @@ followint this example https://codepen.io/EightArmsHQ/pen/mvqJwg?editors=1100
 }
 
 .dropdown-item {
+    background-color: var(--bg-color);
+    color: var(--font-color);
     cursor: pointer;
 }
 
@@ -79,8 +81,8 @@ followint this example https://codepen.io/EightArmsHQ/pen/mvqJwg?editors=1100
     color: red;
     font-size: 0.7em;
     position: absolute;
-    top: 2px;
-    left: 130px;
+    top: -2px;
+    left: 75px;
 }
 
 #logoDiv {
@@ -145,4 +147,15 @@ followint this example https://codepen.io/EightArmsHQ/pen/mvqJwg?editors=1100
 
 .italic {
     font-style: italic;
+}
+
+.otherGenome-container {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(6, auto);
+}
+
+.otherGenome-label:hover {
+    cursor: pointer;
+    border-bottom: 1px solid blue;
 }

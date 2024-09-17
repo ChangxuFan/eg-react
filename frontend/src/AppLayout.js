@@ -12,11 +12,19 @@ import ThreedmolContainer from "components/trackVis/3dmol/ThreedmolContainer";
 import { BrowserScene } from "./components/vr/BrowserScene";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { RegionExpander } from "model/RegionExpander";
-import { addTabSetToLayout, deleteTabByIdFromLayout, initialLayout, tabIdExistInLayout } from "./layoutUtils";
 import TrackModel from "model/TrackModel";
+import {
+    addTabSetToLayout,
+    deleteTabByIdFromLayout,
+    initialLayout,
+    tabIdExistInLayout,
+    deleteTabByIdFromModel,
+    ensureLayoutHeader,
+} from "./layoutUtils";
 import OmeroContainer from "components/trackVis/imageTrack/OmeroContainer";
+import GraphContainer from "components/trackVis/graphTrack/GraphContainer";
 
-import "../node_modules/flexlayout-react/style/light.css";
+// import "../node_modules/flexlayout-react/style/light.css";
 import "./AppLayout.css";
 
 /**
@@ -32,6 +40,8 @@ function mapStateToProps(state) {
         tracks: state.browser.present.tracks,
         isShowingVR: state.browser.present.isShowingVR,
         layout: state.browser.present.layout,
+        selectedSet: state.browser.present.regionSetView,
+        darkTheme: state.browser.present.darkTheme,
     };
 }
 
@@ -40,10 +50,34 @@ const callbacks = {
     onTracksChanged: ActionCreators.setTracks,
     onToggleVR: ActionCreators.toggleVR,
     onSetLayout: ActionCreators.setLayout,
+    onSetSelected: ActionCreators.setRegionSetView,
 };
 
 class AppLayout extends React.PureComponent {
-    componentDidUpdate(prevProps, prevState, snapshot) {
+    constructor(props) {
+        super(props);
+        this.state = {
+            anchors3d: [],
+            sync3d: false,
+            viewer3dNumFrames: null,
+            geneFor3d: null,
+            g3dcount: 0,
+            imageInfo: null,
+        };
+        this.handleNodeResize = _.debounce(this.handleNodeResize, 250);
+    }
+
+    componentDidMount() {
+        // const {tracks} = this.props;
+        // const g3dtracks = tracks.filter((tk) => tk.type === "g3d");
+        // if(g3dtracks.length) {
+        //     this.setState({g3dcount: g3dtracks.length})
+        // }
+        const g3dcount = this.checkG3dLayout();
+        this.setState({ g3dcount });
+    }
+
+    componentDidUpdate(prevProps, prevState) {
         if (prevProps.isShowingVR !== this.props.isShowingVR) {
             if (this.props.isShowingVR) {
                 const vrTabset = {
@@ -67,9 +101,22 @@ class AppLayout extends React.PureComponent {
             }
         }
         if (prevProps.tracks !== this.props.tracks) {
-            const g3dtracks = this.props.tracks.filter((t) => t.type === "g3d");
+            const prevG3dtracks = prevProps.tracks.filter((t) => t.type === "g3d");
+            const prevIds = prevG3dtracks.map((tk) => tk.getId());
+            const currentG3dtracks = this.props.tracks.filter((t) => t.type === "g3d");
+            const g3dtracks = currentG3dtracks.filter((tk) => !prevIds.includes(tk.getId()));
+
+            //graph, gg short for global graph
+            const prevGgtracks = prevProps.tracks.filter((t) => t.type === "graph");
+            const prevgIds = prevGgtracks.map((tk) => tk.getId());
+            const currentGgtracks = this.props.tracks.filter((t) => t.type === "graph");
+            const ggtracks = currentGgtracks.filter((tk) => !prevgIds.includes(tk.getId()));
+
             let layout = { ...this.props.layout };
             if (g3dtracks.length) {
+                this.setState((prevState) => {
+                    return { g3dcount: prevState.g3dcount + g3dtracks.length };
+                });
                 g3dtracks.forEach((tk) => {
                     const tabId = shortid.generate();
                     const addLayout = {
@@ -92,23 +139,117 @@ class AppLayout extends React.PureComponent {
                 });
                 this.props.onSetLayout(layout);
             }
+            if (ggtracks.length) {
+                ggtracks.forEach((tk) => {
+                    const tabId = shortid.generate();
+                    const addLayout = {
+                        type: "tabset",
+                        children: [
+                            {
+                                type: "tab",
+                                name: tk.getDisplayLabel(),
+                                component: "graph",
+                                id: tabId,
+                                config: {
+                                    trackModel: tk.serialize(),
+                                    tabId,
+                                    trackId: tk.getId(),
+                                },
+                            },
+                        ],
+                    };
+                    layout = addTabSetToLayout(addLayout, layout);
+                });
+                this.props.onSetLayout(layout);
+            }
+        }
+        if (prevProps.layout !== this.props.layout) {
+            const g3dcount = this.checkG3dLayout();
+            this.setState({ g3dcount });
         }
     }
 
+    checkG3dLayout = () => {
+        const { layout } = this.props;
+        if (!_.isEmpty(layout)) {
+            const model = FlexLayout.Model.fromJson(layout);
+            // console.log(layout, model, model._idMap);
+            let g3dcount = 0;
+            Object.keys(model._idMap).forEach((k) => {
+                const node = model.getNodeById(k);
+                if (node.getType() === "tab") {
+                    const component = node.getComponent();
+                    if (component === "g3d") {
+                        g3dcount++;
+                    }
+                }
+            });
+            return g3dcount;
+        }
+        return 0;
+    };
+
+    setAnchors3d = (anchors) => {
+        this.setState({ anchors3d: anchors });
+    };
+
+    setGeneFor3d = (gene) => {
+        this.setState({ geneFor3d: gene });
+    };
+
+    getViewer3dAndNumFrames = (viewer3dNumFrames) => {
+        this.setState({ viewer3dNumFrames });
+    };
+
+    toggleSync3d = (isSync3d) => {
+        this.setState({ sync3d: isSync3d });
+    };
+
+    setImageInfo = (info) => {
+        this.setState({ imageInfo: info });
+    };
+
     handleNodeResize = (node) => {
-        const layout = _.isEmpty(this.props.layout) ? initialLayout : this.props.layout;
-        const model = FlexLayout.Model.fromJson(layout);
-        const parent = node.getParent();
-        model.doAction(FlexLayout.Actions.updateNodeAttributes(parent.getId(), { weight: parent.getWeight() }));
-        this.props.onSetLayout(model.toJson());
+        const model = node.getModel();
+        if (model) {
+            // const tabIds = Object.keys(model._idMap);
+            // tabIds.forEach((tabId) => {
+            //     const node = model._idMap[tabId];
+            //     if (node.type === "tab") {
+            //     }
+            // });
+            // const app = model.getNodeById("app");
+            // console.log(app.getId(), app.getParent().getWeight());
+            // model.doAction(
+            //     FlexLayout.Actions.updateNodeAttributes(app.getParent().getId(), { weight: app.getParent().getWeight() })
+            // );
+            const parent = node.getParent();
+            // console.log(node.getId(), parent.getWeight());
+            model.doAction(FlexLayout.Actions.updateNodeAttributes(parent.getId(), { weight: parent.getWeight() }));
+            // console.log(model);
+            this.props.onSetLayout(model.toJson());
+        }
     };
 
     renderApp = (node) => {
-        const model = node ? node.getModel() : initialLayout;
+        const model = node ? node.getModel() : FlexLayout.Model.fromJson(initialLayout);
         // if (node) {
         //     node.setEventListener("resize", () => this.handleNodeResize(node));
         // }
-        return <App layoutModel={model} />;
+        // const isThereG3dTrack = tracks.filter((tk) => tk.type === "g3d").length > 0; // not working sometimes after browser app track selection
+        // console.log(this.state.g3dcount);
+        return (
+            <div className="bg">
+                <App
+                    layoutModel={model}
+                    onSetAnchors3d={this.setAnchors3d}
+                    onSetGeneFor3d={this.setGeneFor3d}
+                    viewer3dNumFrames={this.state.viewer3dNumFrames}
+                    isThereG3dTrack={this.state.g3dcount > 0}
+                    onSetImageInfo={this.setImageInfo}
+                />
+            </div>
+        );
     };
 
     renderVRscene = (node) => {
@@ -174,15 +315,23 @@ class AppLayout extends React.PureComponent {
     // };
 
     render3dmolContainer = (node) => {
-        const { viewRegion, genomeConfig, tracks } = this.props;
+        const model = node.getModel();
+        const { viewRegion, genomeConfig, tracks, onNewViewRegion, onSetSelected, selectedSet, darkTheme } = this.props;
         const config = node.getConfig();
-        const { width, height } = node.getRect();
+        const { x, y, width, height } = node.getRect();
         const g3dtrack = TrackModel.deserialize(config.trackModel);
         g3dtrack.id = config.trackId;
+        const origG3d = tracks.filter((tk) => tk.getId() === g3dtrack.id);
+        g3dtrack.fileObj = origG3d.length ? origG3d[0].fileObj : null;
+        // const currentTrackIds = tracks.map((tk) => tk.getId());
+        // if (!currentTrackIds.includes(g3dtrack.id)) {
+        //     const newTracks = [...tracks, g3dtrack];
+        //     this.props.onTracksChanged(newTracks);
+        // }
         node.setEventListener("close", () => {
-            const layout = deleteTabByIdFromLayout(this.props.layout, config.tabId);
-            this.props.onSetLayout(layout);
             this.removeTrackById(g3dtrack.id);
+            const layout = deleteTabByIdFromModel(model, config.tabId);
+            this.props.onSetLayout(layout);
         });
         // node.setEventListener("resize", () => this.handleNodeResize(node));
         return (
@@ -194,15 +343,29 @@ class AppLayout extends React.PureComponent {
                 genomeConfig={genomeConfig}
                 width={width}
                 height={height}
+                x={x}
+                y={y}
+                anchors3d={this.state.anchors3d}
+                geneFor3d={this.state.geneFor3d}
+                onSetAnchors3d={this.setAnchors3d}
+                onNewViewRegion={onNewViewRegion}
+                sync3d={this.state.sync3d}
+                onToggleSync3d={this.toggleSync3d}
+                onGetViewer3dAndNumFrames={this.getViewer3dAndNumFrames}
+                imageInfo={this.state.imageInfo}
+                onSetSelected={onSetSelected}
+                selectedSet={selectedSet}
+                darkTheme={darkTheme}
             />
         );
     };
 
     renderOmeroContainer = (node) => {
+        const model = node.getModel();
         const config = node.getConfig();
         const { imageId, tabId, imageUrl, imageUrlSuffix, detailUrl } = config;
         node.setEventListener("close", () => {
-            const layout = deleteTabByIdFromLayout(this.props.layout, tabId);
+            const layout = deleteTabByIdFromModel(model, tabId);
             this.props.onSetLayout(layout);
         });
         // node.setEventListener("resize", () => this.handleNodeResize(node));
@@ -218,6 +381,35 @@ class AppLayout extends React.PureComponent {
         );
     };
 
+    renderGraphContainer = (node) => {
+        //gg short for global graph
+        const model = node.getModel();
+        const { viewRegion, genomeConfig, onNewViewRegion, darkTheme } = this.props;
+        const config = node.getConfig();
+        const { x, y, width, height } = node.getRect();
+        const ggtrack = TrackModel.deserialize(config.trackModel);
+        ggtrack.id = config.trackId;
+        node.setEventListener("close", () => {
+            this.removeTrackById(config.trackId);
+            const layout = deleteTabByIdFromModel(model, config.tabId);
+            this.props.onSetLayout(layout);
+        });
+        return (
+            <GraphContainer
+                viewRegion={viewRegion}
+                ggtrack={ggtrack}
+                expansionAmount={REGION_EXPANDER0}
+                genomeConfig={genomeConfig}
+                width={width}
+                height={height}
+                x={x}
+                y={y}
+                onNewViewRegion={onNewViewRegion}
+                darkTheme={darkTheme}
+            />
+        );
+    };
+
     factory = (node) => {
         const layoutComponent = node.getComponent();
         node.setEventListener("resize", () => this.handleNodeResize(node));
@@ -226,19 +418,29 @@ class AppLayout extends React.PureComponent {
             vr: (node) => this.renderVRscene(node),
             g3d: (node) => this.render3dmolContainer(node),
             omero: (node) => this.renderOmeroContainer(node),
+            graph: (node) => this.renderGraphContainer(node),
         };
         return layoutFuncs[layoutComponent](node);
     };
 
     removeTrackById(trackId) {
-        let newTracks = this.props.tracks.filter((track) => track.id !== trackId);
+        this.setState((prevState) => {
+            return { g3dcount: Math.max(prevState.g3dcount - 1, 0) };
+        });
+        const newTracks = this.props.tracks.filter((track) => track.getId() !== trackId);
         this.props.onTracksChanged(newTracks);
     }
 
     render() {
-        const layout = _.isEmpty(this.props.layout) ? initialLayout : this.props.layout;
+        const layout = _.isEmpty(this.props.layout) ? initialLayout : ensureLayoutHeader(this.props.layout);
         const model = FlexLayout.Model.fromJson(layout);
-        return <FlexLayout.Layout model={model} factory={this.factory} />;
+        const theme = this.props.darkTheme ? "dark" : "light";
+        return (
+            <div style={{ width: "100%", height: "100%" }} id="flex-container" data-theme={theme}>
+                <FlexLayout.Layout model={model} factory={this.factory} />
+            </div>
+        );
+
         // if there is no new tabs, no need to use layout?
         // if (_.isEmpty(this.props.layout)) {
         //     return this.renderApp();

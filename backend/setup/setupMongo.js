@@ -42,16 +42,23 @@ function askUser(question, defaultValue) {
  */
 async function main() {
     // Get directories to import
-    let genomes;
-    try {
-        genomes = fs.readdirSync(DATA_DIR).filter(dir => !dir.startsWith('.'));
-    } catch (error) {
-        console.error(error.toString());
-        console.error('Could not open data directory; aborting...');
-        return ExitCodes.DATA_DIR_MISSING_ERROR;
-    }
+    // let genomes;
+    // try {
+    //     genomes = fs.readdirSync(DATA_DIR).filter(dir => !dir.startsWith('.'));
+    // } catch (error) {
+    //     console.error(error.toString());
+    //     console.error('Could not open data directory; aborting...');
+    //     return ExitCodes.DATA_DIR_MISSING_ERROR;
+    // }
 
-    // const genomes = ["mm39"]; // if just want to load one genome
+    // const genomes = ["hpv16"]; // if just want to load one genome
+    // const genomes = ["TbruceiTREU927", "TbruceiLister427"]; // if just want to load one genome
+    // const genomes = ["xenTro10"]; // if just want to load one genome
+    // const genomes = ["b_chiifu_v3"]; // if just want to load one genome
+    // const genomes = ["susScr11", "oviAri4"]; // if just want to load one genome
+    // const genomes = ["susScr3"]; // if just want to load one genome
+    // const genomes = ["rheMac10", "calJac4"]; // if just want to load one genome
+    const genomes = ["hg38", "hg19", "mm10", "mm39"];
 
     // Get mongo connection
     let mongoClient;

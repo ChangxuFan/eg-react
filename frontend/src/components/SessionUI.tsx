@@ -6,6 +6,8 @@ import { firebaseConnect, getVal } from "react-redux-firebase";
 import { AppState } from "../AppState";
 import { StateWithHistory } from "redux-undo";
 import { notify } from "react-notify-toast";
+import JSZip from 'jszip';
+import _ from 'lodash'
 import { AppStateSaver } from "../model/AppSaveLoad";
 import { ActionCreators } from "../AppState";
 import LoadSession from "./LoadSession";
@@ -47,6 +49,7 @@ interface SessionUIState {
     newSessionLabel: string;
     retrieveId: string;
     lastBundleId: string;
+    sortSession: string;
 }
 
 class SessionUINotConnected extends React.Component<SessionUIProps, SessionUIState> {
@@ -58,6 +61,7 @@ class SessionUINotConnected extends React.Component<SessionUIProps, SessionUISta
             newSessionLabel: getFunName(),
             retrieveId: "",
             lastBundleId: "",
+            sortSession: 'date', // or label
         };
     }
 
@@ -128,6 +132,31 @@ class SessionUINotConnected extends React.Component<SessionUIProps, SessionUISta
         this.downloadSession(true);
     };
 
+    downloadWholeBundle = () => {
+        const bundle = this.getBundle();
+        const { sessionsInBundle, bundleId } = bundle;
+        if (_.isEmpty(sessionsInBundle)) {
+            notify.show("Session bundle is empty, skipping...", "error", 2000);
+            return;
+        }
+        const zip = new JSZip();
+        const zipName = `${bundleId}.zip`;
+        Object.keys(sessionsInBundle).forEach(k => {
+            const session = sessionsInBundle[k];
+            zip.file(`${session.label}-${k}.json`, JSON.stringify(session.state) + "\n");
+
+        })
+        zip.generateAsync({ type: "base64" })
+            .then(function (content) {
+                const dl = document.createElement("a");
+                document.body.appendChild(dl); // This line makes it work in Firefox.
+                dl.setAttribute("href", "data:application/zip;base64," + content);
+                dl.setAttribute("download", zipName);
+                dl.click();
+                notify.show("Whole bundle downloaded!", "success", 2000);
+            });
+    }
+
     setSessionLabel = (event: React.ChangeEvent<HTMLInputElement>) => {
         this.setState({ newSessionLabel: event.target.value.trim() });
     };
@@ -170,10 +199,34 @@ class SessionUINotConnected extends React.Component<SessionUIProps, SessionUISta
         notify.show("Session deleted.", "success", 2000);
     };
 
+    onSortChaneg = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.setState({
+            sortSession: e.target.value,
+        });
+    };
+
     renderSavedSessions = () => {
         const bundle: SessionBundle = this.getBundle();
-        const { lastBundleId } = this.state;
-        const buttons = Object.entries(bundle.sessionsInBundle || {}).map(([id, session]) => {
+        const { lastBundleId, sortSession } = this.state;
+        const sessions = Object.entries(bundle.sessionsInBundle || {});
+        if (!sessions.length) {
+            return null;
+        }
+        if (sortSession === 'date') {
+            sessions.sort((a, b) => b[1].date - a[1].date)
+        }
+        if (sortSession === 'label') {
+            sessions.sort((a, b) => {
+                if (a[1].label > b[1].label) {
+                    return 1;
+                }
+                if (b[1].label > a[1].label) {
+                    return -1;
+                }
+                return 0;
+            })
+        }
+        const buttons = sessions.map(([id, session]) => {
             let button;
             if (lastBundleId === bundle.bundleId && id === bundle.currentId) {
                 button = (
@@ -206,7 +259,31 @@ class SessionUINotConnected extends React.Component<SessionUIProps, SessionUISta
             );
         });
 
-        return <ol>{buttons}</ol>;
+        return (<div className="SessionUI-sessionlist">
+            Sort session by: <label>
+                <input
+                    type="radio"
+                    value="date"
+                    name="sort"
+                    checked={sortSession === "date"}
+                    onChange={this.onSortChaneg}
+                />
+                <span>Date</span>
+            </label>
+
+            <label>
+                <input
+                    type="radio"
+                    name="sort"
+                    value="label"
+                    checked={sortSession === "label"}
+                    onChange={this.onSortChaneg}
+                />
+                <span>Label</span>
+            </label>
+
+            <ol>{buttons}</ol>
+        </div>);
     };
 
     setRetrieveId = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,12 +311,12 @@ class SessionUINotConnected extends React.Component<SessionUIProps, SessionUISta
 
     render() {
         return (
-            <div>
+            <div style={{ margin: "20px", display: this.props.withGenomePicker ? 'flex' : 'block', flexDirection: 'column', alignItems: "center" }}>
                 <div>
                     <label htmlFor="retrieveId">
                         <input
                             type="text"
-                            size={40}
+                            size={50}
                             placeholder="Session bundle Id"
                             value={this.state.retrieveId}
                             onChange={this.setRetrieveId}
@@ -264,7 +341,7 @@ class SessionUINotConnected extends React.Component<SessionUIProps, SessionUISta
                                 <input
                                     type="text"
                                     value={this.state.newSessionLabel}
-                                    size={30}
+                                    size={40}
                                     onChange={this.setSessionLabel}
                                 />{" "}
                                 or use a{" "}
@@ -286,6 +363,8 @@ class SessionUINotConnected extends React.Component<SessionUIProps, SessionUISta
                         </button>{" "}
                         <button className="SessionUI btn btn-info" onClick={this.downloadAsHub}>
                             Download as datahub
+                        </button> <button className="SessionUI btn btn-warning" onClick={this.downloadWholeBundle}>
+                            Download whole bundle
                         </button>
                     </React.Fragment>
                 )}
@@ -293,7 +372,7 @@ class SessionUINotConnected extends React.Component<SessionUIProps, SessionUISta
                 <div className="font-italic" style={{ maxWidth: "600px" }}>
                     Disclaimer: please use <span className="font-weight-bold">sessionFile</span> or{" "}
                     <span className="font-weight-bold">hub</span> URL for publishing using the Browser. Session id is
-                    suppose to be shared with trusted people only. Please check our docs for{" "}
+                    supposed to be shared with trusted people only. Please check our docs for{" "}
                     <a href={HELP_LINKS.publish} target="_blank" rel="noopener noreferrer">
                         Publish with the browser
                     </a>

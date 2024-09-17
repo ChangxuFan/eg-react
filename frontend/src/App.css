@@ -1,9 +1,17 @@
+:root {
+    --colNum: 2;
+    --dark-fg-color: white;
+    --dark-bg-color: #222;
+    --light-fg-color: #222;
+    --light-bg-color: white;
+}
+
 .App {
     margin-bottom: 30px;
 }
 
 .dense-button {
-    padding: 2px;
+    padding: 2px 4px;
     line-height: 1;
 }
 
@@ -31,4 +39,9 @@
 .nav-tabs .nav-link.active:hover {
     color: red;
     background-color: whitesmoke;
+}
+
+.btn-dense {
+    margin-right: 2px !important;
+    margin-bottom: 0 !important;
 }

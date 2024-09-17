@@ -1,3 +1,4 @@
+import LabelConfig from "components/trackContextMenu/LabelConfig";
 import { TrackOptions } from "model/TrackModel";
 import { InteractionDisplayMode } from "./../../model/DisplayModes";
 import { TrackConfig } from "./TrackConfig";
@@ -20,6 +21,7 @@ import FetchViewWindowConfig from "components/trackContextMenu/FetchViewWindowCo
 import MaxValueFilterConfig from "components/trackContextMenu/MaxValueFilterConfig";
 import MinValueFilterConfig from "components/trackContextMenu/MinValueFilterConfig";
 import BothAnchorsInViewConfig from "components/trackContextMenu/BothAnchorsInViewConfig";
+import ClampHeightConfig from "components/trackContextMenu/ClampHeightConfig";
 
 export class LongRangeTrackConfig extends TrackConfig {
     constructor(props: any) {
@@ -46,7 +48,7 @@ export class LongRangeTrackConfig extends TrackConfig {
             if (this.trackModel.files.length > 0) {
                 return new LocalBedSource(this.trackModel.files);
             } else {
-                return new WorkerSource(BedWorker, this.trackModel.url);
+                return new WorkerSource(BedWorker, this.trackModel.url, this.trackModel.indexUrl);
             }
         }
     }
@@ -91,6 +93,7 @@ export class LongRangeTrackConfig extends TrackConfig {
 
     getMenuComponents() {
         const items = [
+            LabelConfig,
             InteractionDisplayModeConfig,
             HeightConfig,
             ScoreConfig,
@@ -104,6 +107,12 @@ export class LongRangeTrackConfig extends TrackConfig {
         ];
         if (this.getOptions().displayMode === InteractionDisplayMode.ARC) {
             items.splice(1, 0, LineWidthConfig);
+        }
+        if (
+            this.getOptions().displayMode === InteractionDisplayMode.HEATMAP ||
+            this.getOptions().displayMode === InteractionDisplayMode.ARC
+        ) {
+            items.push(ClampHeightConfig);
         }
         return items;
     }

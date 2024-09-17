@@ -39,6 +39,8 @@ export class AppStateSaver {
             isShowingNavigator: appState.isShowingNavigator,
             isShowingVR: appState.isShowingVR,
             layout: appState.layout,
+            highlights: appState.highlights,
+            darkTheme: appState.darkTheme,
             // threedTracks: appState.threedTracks.filter((track) => !track.fileObj).map((track) => track.serialize()),
         };
         return object;
@@ -80,6 +82,8 @@ export class AppStateLoader {
             isShowingNavigator: object.isShowingNavigator,
             isShowingVR: object.isShowingVR,
             layout: object.layout || {},
+            highlights: object.highlights || [],
+            darkTheme: object.darkTheme || false,
             // threedTracks: object.threedTracks.map((data: any) => TrackModel.deserialize(data)),
         };
     }

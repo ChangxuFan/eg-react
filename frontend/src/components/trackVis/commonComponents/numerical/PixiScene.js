@@ -22,7 +22,7 @@ export class PixiScene extends React.PureComponent {
         currentStep: 0,
         speed: [5], //react-compound-slider require an array, to be FIXED
         color: "blue",
-        backgroundColor: "white",
+        backgroundColor: "var(--bg-color)",
         dynamicColors: [],
         useDynamicColors: false,
     };
@@ -201,7 +201,7 @@ export class PixiScene extends React.PureComponent {
 
     onPointerDown = (event) => {
         // console.log(event, event.data.originalEvent.which);
-        if (event.data.originalEvent.which === 1) {
+        if (event.data.originalEvent.which === 2) {
             // only left click
             this.setState((prevState) => {
                 return { isPlaying: !prevState.isPlaying };

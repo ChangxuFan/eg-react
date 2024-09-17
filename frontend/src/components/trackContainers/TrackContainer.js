@@ -4,9 +4,7 @@ import _ from "lodash";
 import connect from "react-redux/lib/connect/connect";
 import ReactModal from "react-modal";
 import Hotkeys from "react-hot-keys";
-
 import { ActionCreators } from "../../AppState";
-
 import { withTrackData } from "./TrackDataManager";
 import { withTrackView } from "./TrackViewManager";
 import TrackHandle from "./TrackHandle";
@@ -21,21 +19,22 @@ import ContextMenuManager from "../ContextMenuManager";
 import DivWithBullseye from "../DivWithBullseye";
 import withAutoDimensions from "../withAutoDimensions";
 import TrackContextMenu from "../trackContextMenu/TrackContextMenu";
-
 import TrackModel from "../../model/TrackModel";
 import TrackSelectionBehavior from "../../model/TrackSelectionBehavior";
 import DisplayedRegionModel from "../../model/DisplayedRegionModel";
 import UndoRedo from "./UndoRedo";
 import History from "./History";
-
 import HighlightRegion from "../HighlightRegion";
+import { HighlightMenu } from "./HighlightMenu";
 import { VerticalDivider } from "./VerticalDivider";
 import { CircletView } from "./CircletView";
+import { ChordView } from "./ChordView";
 import ButtonGroup from "./ButtonGroup";
 import TrackRegionController from "../genomeNavigator/TrackRegionController";
-
 import ReorderMany from "./ReorderMany";
 import { niceBpCount } from "../../util";
+import { GroupedTrackManager } from "components/trackManagers/GroupedTrackManager";
+import { getTrackConfig } from "components/trackConfig/getTrackConfig";
 
 import "./TrackContainer.css";
 
@@ -93,6 +92,7 @@ class TrackContainer extends React.Component {
          */
         onMetadataTermsChanged: PropTypes.func,
         suggestedMetaSets: PropTypes.instanceOf(Set),
+        onNewHighlight: PropTypes.func,
     };
 
     static defaultProps = {
@@ -107,11 +107,15 @@ class TrackContainer extends React.Component {
             selectedTool: Tools.DRAG,
             xOffset: 0,
             showModal: false,
+            showChordModal: false,
             showReorderManyModal: false,
             trackForCircletView: null, // the trackmodel for circlet view
+            trackForChordView: null,
             circletColor: "#ff5722",
             panningAnimation: "none",
             zoomAnimation: 0,
+            groupScale: undefined,
+            showHighlightMenuModal: false,
         };
         this.leftBeam = React.createRef();
         this.rightBeam = React.createRef();
@@ -129,11 +133,18 @@ class TrackContainer extends React.Component {
         this.onKeyDown = this.onKeyDown.bind(this);
         this.panLeftOrRight = this.panLeftOrRight.bind(this);
         this.zoomOut = this.zoomOut.bind(this);
+        this.groupManager = new GroupedTrackManager();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (this.props.tracks !== prevProps.tracks || prevProps.primaryView !== this.props.primaryView) {
+            this.getGroupScale();
+        }
     }
 
     getBeamRefs = () => {
         return [this.leftBeam.current, this.rightBeam.current];
-    }
+    };
 
     panLeftOrRight(left = true) {
         const { primaryView, onNewRegion } = this.props;
@@ -180,6 +191,9 @@ class TrackContainer extends React.Component {
             case "alt+m":
                 this.toggleTool(Tools.ZOOM_IN);
                 break;
+            case "alt+n":
+                this.toggleTool(Tools.HIGHLIGHT);
+                break;
             case "alt+z":
                 this.panLeftOrRight(true);
                 break;
@@ -194,6 +208,9 @@ class TrackContainer extends React.Component {
                 break;
             case "alt+g":
                 this.toggleReorderManyModal();
+                break;
+            case "alt+u":
+                this.toggleHighlightMenuModal();
                 break;
             default:
                 break;
@@ -224,6 +241,14 @@ class TrackContainer extends React.Component {
         this.setState({ showModal: false, trackForCircletView: null });
     }
 
+    handleOpenChordModal = (track) => {
+        this.setState({ showChordModal: true, trackForChordView: track });
+    };
+
+    handleCloseChordModal = () => {
+        this.setState({ showChordModal: false });
+    };
+
     setCircletColor(color) {
         this.setState({ circletColor: color });
     }
@@ -239,6 +264,20 @@ class TrackContainer extends React.Component {
     toggleReorderManyModal = () => {
         this.setState((prevState) => {
             return { showReorderManyModal: !prevState.showReorderManyModal };
+        });
+    };
+
+    openHighlightMenuModal = () => {
+        this.setState({ showHighlightMenuModal: true });
+    };
+
+    closeHighlightMenuModal = () => {
+        this.setState({ showHighlightMenuModal: false });
+    };
+
+    toggleHighlightMenuModal = () => {
+        this.setState((prevState) => {
+            return { showHighlightMenuModal: !prevState.showHighlightMenuModal };
         });
     };
 
@@ -446,6 +485,14 @@ class TrackContainer extends React.Component {
         this.props.onTracksChanged(newTracks);
     };
 
+    /**
+     * starts highlight
+     * @param {MouseEvent} evt
+     */
+    // initializeHighlight(evt) {
+    //     console.log(evt)
+    // }
+
     // End callback methods
     ////////////////////
     // Render methods //
@@ -461,13 +508,16 @@ class TrackContainer extends React.Component {
             viewRegion,
             onNewRegion,
             onToggleHighlight,
-            onSetEnteredRegion,
+            onNewHighlight,
+            highlights,
             primaryView,
+            onSetHighlights,
         } = this.props;
+        // console.log(this.props, viewRegion);
         // position: "-webkit-sticky", position: "sticky", top: 0, zIndex: 1, background: "white"
         const panLeftButton = (
             <button
-                className="btn btn-outline-dark"
+                className="btn btn-outline-secondary"
                 title="Pan left
 (Alt+Z)"
                 style={{ fontFamily: "monospace" }}
@@ -478,7 +528,7 @@ class TrackContainer extends React.Component {
         );
         const panRightButton = (
             <button
-                className="btn btn-outline-dark"
+                className="btn btn-outline-secondary"
                 title="Pan right
 (Alt+X)"
                 style={{ fontFamily: "monospace" }}
@@ -500,10 +550,10 @@ class TrackContainer extends React.Component {
                             selectedRegion={viewRegion}
                             onRegionSelected={onNewRegion}
                             onToggleHighlight={onToggleHighlight}
-                            onSetEnteredRegion={onSetEnteredRegion}
+                            onNewHighlight={onNewHighlight}
                         />
                     )}
-                    <div className="tool-element">
+                    <div className="tool-element" style={{ display: "flex", alignItems: "center" }}>
                         <ReorderMany
                             onOpenReorderManyModal={this.openReorderManyModal}
                             onCloseReorderManyModal={this.closeReorderManyModal}
@@ -514,11 +564,22 @@ class TrackContainer extends React.Component {
                     {/* <ZoomButtons viewRegion={viewRegion} onNewRegion={onNewRegion} /> */}
                     <ZoomButtons viewRegion={viewRegion} onNewRegion={onNewRegion} zoomOut={this.zoomOut} />
                     <ButtonGroup buttons={panRightButton} />
-                    <div className="tool-element">
+                    <div className="tool-element" style={{ display: "flex", alignItems: "center" }}>
                         <UndoRedo />
                     </div>
-                    <div className="tool-element">
+                    <div className="tool-element" style={{ display: "flex", alignItems: "center" }}>
                         <History />
+                    </div>
+                    <div className="tool-element" style={{ display: "flex", alignItems: "center" }}>
+                        <HighlightMenu
+                            onSetHighlights={onSetHighlights}
+                            onOpenHighlightMenuModal={this.openHighlightMenuModal}
+                            onCloseHighlightMenuModal={this.closeHighlightMenuModal}
+                            showHighlightMenuModal={this.state.showHighlightMenuModal}
+                            highlights={highlights}
+                            viewRegion={viewRegion}
+                            onNewRegion={onNewRegion}
+                        />
                     </div>
                     <div className="tool-element" style={{ minWidth: "200px", alignSelf: "center" }}>
                         <PixelInfo
@@ -537,14 +598,40 @@ class TrackContainer extends React.Component {
         );
     }
 
+    getGroupScale = () => {
+        const { tracks, trackData, primaryView } = this.props;
+        const groupScale = this.groupManager.getGroupScale(
+            tracks.filter((tk) => tk.options.hasOwnProperty("group") && tk.options.group),
+            trackData,
+            primaryView ? primaryView.visWidth : 0,
+            primaryView ? primaryView.viewWindow : 0
+        );
+        this.setState({ groupScale });
+    };
+
     /**
      * @return {JSX.Element[]} track elements to render
      */
     makeTrackElements() {
-        const { tracks, trackData, primaryView, metadataTerms, viewRegion, layoutModel } = this.props;
+        const {
+            tracks,
+            trackData,
+            primaryView,
+            metadataTerms,
+            viewRegion,
+            layoutModel,
+            onSetAnchors3d,
+            onSetGeneFor3d,
+            viewer3dNumFrames,
+            basesPerPixel,
+            isThereG3dTrack,
+            onSetImageInfo,
+        } = this.props;
+
         const trackElements = tracks.map((trackModel, index) => {
             const id = trackModel.getId();
             const data = trackData[id];
+            const layoutProps = getTrackConfig(trackModel).isImageTrack() ? { layoutModel } : {};
             return (
                 <TrackHandle
                     key={trackModel.getId()}
@@ -562,8 +649,16 @@ class TrackContainer extends React.Component {
                     onClick={this.handleTrackClicked}
                     onMetadataClick={this.handleMetadataClicked}
                     selectedRegion={viewRegion}
-                    layoutModel={layoutModel}
+                    // layoutModel={layoutModel}
                     getBeamRefs={this.getBeamRefs}
+                    onSetAnchors3d={onSetAnchors3d}
+                    onSetGeneFor3d={onSetGeneFor3d}
+                    viewer3dNumFrames={viewer3dNumFrames}
+                    basesPerPixel={basesPerPixel}
+                    isThereG3dTrack={isThereG3dTrack}
+                    onSetImageInfo={onSetImageInfo}
+                    groupScale={this.state.groupScale}
+                    {...layoutProps}
                 />
             );
         });
@@ -576,7 +671,7 @@ class TrackContainer extends React.Component {
      * @return {JSX.Element} - subcontainer that renders tracks
      */
     renderSubContainer() {
-        const { tracks, primaryView, onNewRegion, onTracksChanged } = this.props;
+        const { tracks, primaryView, onNewRegion, onTracksChanged, onNewHighlight } = this.props;
         const trackElements = this.makeTrackElements();
         switch (this.state.selectedTool) {
             case Tools.REORDER:
@@ -605,6 +700,14 @@ class TrackContainer extends React.Component {
                         onXOffsetChanged={this.changeXOffset}
                     />
                 );
+            case Tools.HIGHLIGHT:
+                return (
+                    <ZoomableTrackContainer
+                        trackElements={trackElements}
+                        visData={primaryView}
+                        onNewRegion={onNewHighlight}
+                    />
+                );
             default:
                 return trackElements;
         }
@@ -627,34 +730,47 @@ class TrackContainer extends React.Component {
         );
     }
 
+    renderChordModal() {
+        const { trackData } = this.props;
+        const { trackForChordView } = this.state;
+        return (
+            <ReactModal isOpen={this.state.showChordModal} contentLabel="chord-opener" ariaHideApp={false}>
+                <button onClick={this.handleCloseChordModal}>Close</button>
+                <ChordView trackData={trackData} track={trackForChordView} />
+            </ReactModal>
+        );
+    }
+
     /**
      * @inheritdoc
      */
     render() {
-        const {
-            tracks,
-            onTracksChanged,
-            enteredRegion,
-            highlightEnteredRegion,
-            primaryView,
-            viewRegion,
-            highlightColor,
-        } = this.props;
+        const { tracks, onTracksChanged, primaryView, viewRegion, basesPerPixel, trackData, highlights } = this.props;
         if (!primaryView) {
-            return null;
+            return <div>Loading...</div>;
         }
         const { selectedTool } = this.state;
+        const fileInfos = {}; // key, track id, value: fileInfo obj
+        tracks.forEach((tk) => {
+            const tkId = tk.getId();
+            if (!_.isEmpty(trackData[tkId].fileInfo)) {
+                fileInfos[tkId] = trackData[tkId].fileInfo;
+            }
+        });
         const contextMenu = (
             <TrackContextMenu
                 tracks={tracks}
                 onTracksChanged={onTracksChanged}
                 deselectAllTracks={this.deselectAllTracks}
                 onCircletRequested={this.handleOpenModal}
+                onChordRequested={this.handleOpenChordModal}
                 onApplyMatplot={this.applyMatPlot}
                 onApplyDynamicplot={this.applyDynamicPlot}
                 onApplyDynamicHic={this.applyDynamicHic}
                 onApplyDynamicLongrange={this.applyDynamicLongrange}
                 onApplyDynamicBed={this.applyDynamicBed}
+                basesPerPixel={basesPerPixel}
+                fileInfos={fileInfos}
             />
         );
         const trackDivStyle = {
@@ -671,19 +787,26 @@ class TrackContainer extends React.Component {
                         shouldMenuClose={(event) => !SELECTION_BEHAVIOR.isToggleEvent(event)}
                     >
                         <DivWithBullseye style={trackDivStyle} id="trackContainer">
-                            <div id="beamLeft" ref={this.leftBeam}> <div id="beamLeftInner"></div> </div>
-                            <div id="beamRight" ref={this.rightBeam}> <div id="beamRightInner"></div> </div>
+                            <div id="beamLeft" ref={this.leftBeam}>
+                                {" "}
+                                <div id="beamLeftInner"></div>{" "}
+                            </div>
+                            <div id="beamRight" ref={this.rightBeam}>
+                                {" "}
+                                <div id="beamRightInner"></div>{" "}
+                            </div>
                             <VerticalDivider
                                 visData={primaryView}
                                 genomeRegion={viewRegion}
                                 xOffset={this.state.xOffset}
                             >
                                 <HighlightRegion
-                                    enteredRegion={enteredRegion}
-                                    highlightColor={highlightColor}
-                                    highlightEnteredRegion={highlightEnteredRegion}
+                                    viewRegion={viewRegion}
                                     visData={primaryView}
                                     xOffset={this.state.xOffset}
+                                    highlights={highlights}
+                                    trackData={trackData}
+                                    tracks={tracks}
                                 >
                                     {this.renderSubContainer()}
                                 </HighlightRegion>
@@ -692,10 +815,11 @@ class TrackContainer extends React.Component {
                     </ContextMenuManager>
                 </OutsideClickDetector>
                 {this.renderModal()}
+                {this.renderChordModal()}
                 <Hotkeys
-                    keyName="alt+d,alt+h,alt+r,alt+s,alt+m,alt+z,alt+x,alt+i,alt+o,alt+g"
+                    keyName="alt+d,alt+h,alt+r,alt+s,alt+m,alt+n,alt+z,alt+x,alt+i,alt+o,alt+g,alt+u"
                     onKeyDown={this.onKeyDown.bind(this)}
-                ></Hotkeys>
+                />
             </React.Fragment>
         );
     }

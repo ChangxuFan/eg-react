@@ -40,11 +40,11 @@ const MAX_POLYGONS = 500;
  * @param {number} i - first index to swap
  * @param {number} j - second index to swap
  */
-function swap(array: any[], i: number, j: number) {
-  const temp = array[j];
-  array[j] = array[i];
-  array[i] = temp;
-}
+// function swap(array: any[], i: number, j: number) {
+//   const temp = array[j];
+//   array[j] = array[i];
+//   array[i] = temp;
+// }
 
 /**
  *
@@ -130,12 +130,14 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
     const targetSequence = placement.visiblePart.getTargetSequence();
     const querySequence = placement.visiblePart.getQuerySequence();
     const baseWidth = targetXSpan.getLength() / targetSequence.length;
-
+    const targetLocus = placement.visiblePart.getLocus().toString();
+    const queryLocus = placement.visiblePart.getQueryLocus().toString();
     return (
       <React.Fragment key={i}>
-        {renderSequenceSegments(targetSequence, targetSegments, ALIGN_TRACK_MARGIN, primaryColor, false)}
+        {renderSequenceSegments(targetLocus, targetSequence, targetSegments, ALIGN_TRACK_MARGIN, primaryColor, false)}
         {renderAlignTicks()}
         {renderSequenceSegments(
+          queryLocus,
           querySequence,
           querySegments,
           height - RECT_HEIGHT - ALIGN_TRACK_MARGIN,
@@ -168,6 +170,7 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
     }
 
     function renderSequenceSegments(
+      locus: string,
       sequence: string,
       segments: PlacedSequenceSegment[],
       y: number,
@@ -183,6 +186,7 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
           width={segment.xSpan.getLength()}
           height={RECT_HEIGHT}
           fill={color}
+          onClick={() => console.log("You clicked on " + locus)}
         />
       ));
       const letters = nonGaps.map((segment, i) => (
@@ -203,7 +207,7 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
           y={y}
           height={RECT_HEIGHT}
           opacity={0.75}
-          isToRight={!placement.record.getIsReverseStrandQuery()}
+          isToRight={!(isQuery && placement.record.getIsReverseStrandQuery())}
           color="white"
           separation={baseWidth}
         />
@@ -220,7 +224,7 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
             strokeDasharray={baseWidth / 2}
           />
           {rects}
-          {isQuery && arrows}
+          {arrows}
           {letters}
         </React.Fragment>
       );
@@ -254,10 +258,10 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
         width={targetXSpan.getLength()}
         height={RECT_HEIGHT}
         fill={this.props.options.primaryColor}
-      // tslint:disable-next-line:jsx-no-lambda
-      // onClick={() =>
-      //   console.log("You clicked on " + queryFeature.getLocus().toString())
-      // }
+        // tslint:disable-next-line:jsx-no-lambda
+        // onClick={() =>
+        //   console.log("You clicked on " + queryFeature.getLocus().toString())
+        // }
       />
     );
     const queryGenomeRect = (
@@ -268,7 +272,7 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
         height={RECT_HEIGHT}
         fill={this.props.options.queryColor}
         // tslint:disable-next-line:jsx-no-lambda
-        onClick={() => console.log("You clicked on " + queryFeature.getLocus().toString())}
+        // onClick={() => console.log("You clicked on " + queryFeature.getLocus().toString())}
       />
     );
 
@@ -289,28 +293,39 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
       );
     }
 
-    const segmentPolygons = segments.map((segment, i) => {
-      const points = [
-        [Math.floor(segment.targetXSpan.start), RECT_HEIGHT],
-        [Math.floor(segment.queryXSpan.start), queryRectTopY],
-        [Math.ceil(segment.queryXSpan.end), queryRectTopY],
-        [Math.ceil(segment.targetXSpan.end), RECT_HEIGHT],
-      ];
-      if (
-        (!plotReverse && segment.record.queryStrand === "-") ||
-        (plotReverse && segment.record.queryStrand === "+")
-      ) {
-        swap(points, 1, 2);
-      }
+    const curvePaths = segments.map((segment, i) => {
+      const x0 = Math.floor(segment.targetXSpan.start);
+      const y0 = RECT_HEIGHT;
+      const x1 = (!plotReverse && segment.record.queryStrand === "-") ||
+                 (plotReverse && segment.record.queryStrand === "+") ? 
+                 Math.ceil(segment.queryXSpan.end) :
+                 Math.floor(segment.queryXSpan.start);
+      const y1 = queryRectTopY;
+      const x2 = (!plotReverse && segment.record.queryStrand === "-") ||
+                 (plotReverse && segment.record.queryStrand === "+") ? 
+                 Math.floor(segment.queryXSpan.start) :
+                 Math.ceil(segment.queryXSpan.end);
+      // const y2 = queryRectTopY;
+
+      const x3 = segment.targetXSpan.end;
+      const targetGenome = this.props.alignment.primaryGenome;
+      const queryGenome = this.props.alignment.queryGenome;
+      const y3 = RECT_HEIGHT;
+      const yhalf = (RECT_HEIGHT + queryRectTopY)/2;
+      const d_string = `M ${x0} ${y0} 
+        C ${x0} ${yhalf}, ${x1} ${yhalf},${x1},${y1} 
+        H ${x2} 
+        C ${x2} ${yhalf}, ${x3} ${yhalf}, ${x3},${y3}
+        Z`; 
 
       return (
-        <polygon
+        <path
           key={i}
-          points={points as any} // Contrary to what Typescript thinks, you CAN pass a number[][].
+          d={d_string}
           fill={this.props.options.queryColor}
           fillOpacity={0.5}
           // tslint:disable-next-line:jsx-no-lambda
-          onClick={() => console.log("You clicked on " + segment.record.getLocus())}
+          onClick={() => console.log(targetGenome + ":" + segment.record.getLocus() + " --- " + queryGenome + ":" + segment.record.queryLocus.toString())}
         />
       );
     });
@@ -320,7 +335,7 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
         {targetGenomeRect}
         {queryGenomeRect}
         {label}
-        {ensureMaxListLength(segmentPolygons, MAX_POLYGONS)}
+        {ensureMaxListLength(curvePaths, MAX_POLYGONS)}
       </React.Fragment>
     );
   }
@@ -375,20 +390,22 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
       );
     } else {
       const drawData = alignment.drawData as PlacedMergedAlignment[];
+      const segmentArray = [].concat.apply([], drawData.map((placement) =>
+        placement.segments) as any)
       // const targetLocusArrayArray = drawData.map(
       //     placement => placement.segments.map(segment => segment.visiblePart.getLocus()));
       // const targetLocusArray = [].concat.apply([], targetLocusArrayArray);
       // const queryLocusArrayArray = drawData.map(
       //     placement => placement.segments.map(segment => segment.visiblePart.getQueryLocus()));
       // const queryLocusArray = [].concat.apply([], queryLocusArrayArray);
-      const targetXSpanArrayArray = drawData.map((placement) =>
-        placement.segments.map((segment) => segment.targetXSpan)
-      );
-      const targetXSpanArray = [].concat.apply([], targetXSpanArrayArray as any);
-      const queryXSpanArrayArray = drawData.map((placement) =>
-        placement.segments.map((segment) => segment.queryXSpan)
-      );
-      const queryXSpanArray = [].concat.apply([], queryXSpanArrayArray as any);
+      // const targetXSpanArrayArray = drawData.map((placement) =>
+      //   placement.segments.map((segment) => segment.targetXSpan)
+      // );
+      // const targetXSpanArray = [].concat.apply([], targetXSpanArrayArray as any);
+      // const queryXSpanArrayArray = drawData.map((placement) =>
+      //   placement.segments.map((segment) => segment.queryXSpan)
+      // );
+      // const queryXSpanArray = [].concat.apply([], queryXSpanArrayArray as any);
       const strand = alignment.plotStrand;
       svgElements = drawData.map((placement) => this.renderRoughAlignment(placement, strand === "-", height));
       const arrows = this.renderRoughStrand("+", 0, viewWindow, false);
@@ -402,8 +419,9 @@ class GenomeAlignTrackWithoutOptions extends React.PureComponent<PropsFromTrackC
           rectHeight={RECT_HEIGHT}
           primaryColor={primaryColor}
           queryColor={queryColor}
-          targetXSpanList={targetXSpanArray}
-          queryXSpanList={queryXSpanArray}
+          segmentArray={segmentArray}
+          strand={strand}
+          viewWindowStart={viewWindow.start}
         >
           <svg width={width} height={height} style={{ display: "block" }}>
             {svgElements}

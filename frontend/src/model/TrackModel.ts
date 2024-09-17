@@ -12,6 +12,11 @@ interface ITrackModelMetadata {
     [k: string]: any;
 }
 
+interface QueryEndpoint {
+    name?: string;
+    endpoint?: string;
+}
+
 /**
  * Serialized track model, or the plain object argument to TrackModel's constructor.
  *
@@ -34,8 +39,11 @@ interface ITrackModel {
     filetype?: string;
     options: TrackOptions;
     url: string;
+    indexUrl?: string;
     metadata: ITrackModelMetadata;
     fileObj?: Blob;
+    queryEndpoint?: QueryEndpoint;
+    querygenome?: string;
 }
 
 let nextId = 0;
@@ -59,6 +67,7 @@ export class TrackModel {
     filetype?: string;
     options: TrackOptions;
     url: string;
+    indexUrl?: string;
     metadata: ITrackModelMetadata;
     id: number;
     isSelected: boolean;
@@ -70,6 +79,7 @@ export class TrackModel {
     isText?: boolean;
     textConfig?: any;
     apiConfig?: any;
+    queryEndpoint?: QueryEndpoint;
 
     constructor(plainObject: ITrackModel) {
         Object.assign(this, plainObject);
@@ -80,7 +90,8 @@ export class TrackModel {
         this.type = this.type.toLowerCase();
         this.options = this.options || {}; // `options` stores dynamically-configurable options.
         this.options.label = this.label; // ...which is why we copy this.name.
-        this.url = this.url || "";
+        this.url = mapUrl(this.url) || "";
+        this.indexUrl = mapUrl(this.indexUrl) || undefined;
         this.metadata = variableIsObject(this.metadata) || Array.isArray(this.metadata) ? this.metadata : {}; // avoid number or string as metadata
         this.metadata["Track type"] = this.type;
         this.fileObj = this.fileObj || "";
@@ -89,6 +100,11 @@ export class TrackModel {
         this.isText = this.isText || false;
         this.textConfig = this.textConfig || {};
         this.apiConfig = this.apiConfig || {};
+        this.queryEndpoint = this.queryEndpoint || {};
+        if (plainObject.querygenome) {
+            // only set if there is value
+            this.querygenome = plainObject.querygenome;
+        }
 
         // in case user define height in string, like "25" instead of 25
         if (this.options.height && typeof this.options.height === "string") {
@@ -213,3 +229,16 @@ export class TrackModel {
 }
 
 export default TrackModel;
+
+// modified from juicebox
+export function mapUrl(url: string) {
+    if (!url) {
+        return undefined;
+    }
+    if (url.includes("//www.dropbox.com")) {
+        return url.replace("//www.dropbox.com", "//dl.dropboxusercontent.com");
+    } else if (url.startsWith("ftp://ftp.ncbi.nlm.nih.gov")) {
+        return url.replace("ftp://", "https://");
+    }
+    return url;
+}

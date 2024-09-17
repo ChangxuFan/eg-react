@@ -379,6 +379,7 @@ class FacetTable extends Component {
         const addUrls = found.filter(
             (tk) => this.props.addedTrackSets.has(tk.url) || this.props.addedTrackSets.has(tk.name)
         );
+        const content = this.props.contentColorSetup ? this.props.contentColorSetup : null;
         return (
             <div>
                 <button onClick={() => this.handleOpenModal(id)} className="facet-item">
@@ -391,6 +392,7 @@ class FacetTable extends Component {
                     id={id}
                     style={{
                         overlay: { zIndex: 4, backgroundColor: "rgba(111,107,101, 0.7)" },
+                        content,
                     }}
                 >
                     <span

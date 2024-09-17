@@ -43,6 +43,11 @@ const hg19 = [
         file: "gencode.v29lift37.hg19.basic.annotation_Gene.bed",
         fieldsConfig: geneFieldsAndIndex,
     },
+    {
+        name: "gencodeV39",
+        file: "gencodeV39lift37_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
 ];
 
 const hg38 = [
@@ -62,8 +67,18 @@ const hg38 = [
         fieldsConfig: geneFieldsAndIndex,
     },
     {
+        name: "MANE_select_1.0",
+        file: "mane_select_v1.0.hg38.refbed",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
         name: "Ensembl_GRCh38_94",
         file: "Homo_sapiens.GRCh38.94.chr_Gene.bed",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "gencodeV39",
+        file: "gencodeV39_load",
         fieldsConfig: geneFieldsAndIndex,
     },
 ];
@@ -98,6 +113,11 @@ const mm10 = [
     {
         name: "gencodeM19Basic",
         file: "gencode.vM19.basic.annotation_Gene.bed",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "gencodeCompVM25",
+        file: "wgEncodeGencodeCompVM25_load",
         fieldsConfig: geneFieldsAndIndex,
     },
 ];
@@ -249,13 +269,26 @@ const calJac3 = [
     },
 ];
 
+const calJac4 = [
+    {
+        name: "refGene",
+        file: "refGene_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "ncbiGene",
+        file: "ncbiRefSeq_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
 const nomLeu3 = [
     {
         name: "ensGene",
         file: "ensGene_load",
         fieldsConfig: geneFieldsAndIndex,
     },
-]
+];
 
 const gorGor3 = [
     {
@@ -263,7 +296,7 @@ const gorGor3 = [
         file: "ensGene_load",
         fieldsConfig: geneFieldsAndIndex,
     },
-]
+];
 
 const papAnu2 = [
     {
@@ -271,7 +304,7 @@ const papAnu2 = [
         file: "ensGene_load",
         fieldsConfig: geneFieldsAndIndex,
     },
-]
+];
 
 const rheMac3 = [
     {
@@ -285,6 +318,121 @@ const mm39 = [
     {
         name: "refGene",
         file: "refGene_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "gencodeCompVM28",
+        file: "wgEncodeGencodeCompVM28_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const hpv16 = [
+    {
+        name: "ncbiGene",
+        file: "hpv16.refbed",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const TbruceiTREU927 = [
+    {
+        name: "gene",
+        file: "TriTrypDB-51_TbruceiTREU927.gff.refbed",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const TbruceiLister427 = [
+    {
+        name: "gene",
+        file: "TriTrypDB-51_TbruceiLister427_2018.gff.refbed",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const xenTro10 = [
+    {
+        name: "ncbiGene",
+        file: "ncbiRefSeq_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "refGene",
+        file: "refGene_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const b_chiifu_v3 = [
+    {
+        name: "gene",
+        file: "Brapa_genome_v3.0_genes.gff3.refbed",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const susScr11 = [
+    {
+        name: "refGene",
+        file: "refGene_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "ncbiGene",
+        file: "ncbiRefSeq_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const susScr3 = [
+    {
+        name: "refGene",
+        file: "refGene_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "ncbiGene",
+        file: "ncbiRefSeq_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const oviAri4 = [
+    {
+        name: "refGene",
+        file: "refGene_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "ncbiGene",
+        file: "ncbiRefSeq_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const rheMac10 = [
+    {
+        name: "refGene",
+        file: "refGene_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "ncbiGene",
+        file: "ncbiRefSeq_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+];
+
+const rn7 = [
+    {
+        name: "refGene",
+        file: "refGene_load",
+        fieldsConfig: geneFieldsAndIndex,
+    },
+    {
+        name: "ncbiGene",
+        file: "ncbiRefSeq_load",
         fieldsConfig: geneFieldsAndIndex,
     },
 ];
@@ -316,6 +464,17 @@ const genomeConfig = {
     papAnu2,
     rheMac3,
     mm39,
+    hpv16,
+    TbruceiTREU927,
+    TbruceiLister427,
+    xenTro10,
+    b_chiifu_v3,
+    susScr11,
+    oviAri4,
+    susScr3,
+    rheMac10,
+    calJac4,
+    rn7,
 };
 
 module.exports = genomeConfig;

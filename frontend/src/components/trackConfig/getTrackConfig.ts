@@ -10,6 +10,7 @@ import { BigWigTrackConfig } from "./BigWigTrackConfig";
 import { GeneAnnotationTrackConfig } from "./GeneAnnotationTrackConfig";
 import { HicTrackConfig } from "./HicTrackConfig";
 import { LongRangeTrackConfig } from "./LongRangeTrackConfig";
+import { LongRangeColorTrackConfig } from "./LongRangeColorTrackConfig";
 import { BigInteractTrackConfig } from "./BigInteractTrackConfig";
 import { CoolTrackConfig } from "./CoolTrackConfig";
 import { MethylCTrackConfig } from "./MethylCTrackConfig";
@@ -32,8 +33,19 @@ import { DynamicLongrangeTrackConfig } from "./DynamicLongrangeTrackConfig";
 import { OmeroidrTrackConfig } from "./OmeroidrTrackConfig";
 import { Omero4dnTrackConfig } from "./Omero4dnTrackConfig";
 import { DynseqTrackConfig } from "./DynseqTrackConfig";
+import { RgbpeakTrackConfig } from "./RgbpeakTrackConfig";
+import { VcfTrackConfig } from "./VcfTrackConfig";
+import { BoxplotTrackConfig } from "./BoxplotTrackConfig";
+import { BedcolorTrackConfig } from "./BedcolorTrackConfig";
+import { Rmskv2TrackConfig } from "./Rmskv2TrackConfig";
+import { JasparTrackConfig } from "./JasparTrackConfig";
+import { BrgfaTrackConfig } from "./BrgfaTrackConfig";
+import { FiberTrackConfig } from "./FiberTrackConfig";
+import { BallcTrackConfig } from "./BallcTrackConfig";
 
 export const INTERACTION_TYPES = ["hic", "longrange", "biginteract"];
+export const ALIGNMENT_TYPES = ["genomealign"];
+export const MOD_TYPES = ["modbed"];
 export const DYNAMIC_TYPES = ["dynamic", "dbedgraph", "dynamichic", "dynamiclongrange"];
 
 const TYPE_NAME_TO_CONFIG = {
@@ -47,6 +59,7 @@ const TYPE_NAME_TO_CONFIG = {
     bigwig: BigWigTrackConfig,
     hic: HicTrackConfig,
     longrange: LongRangeTrackConfig,
+    longrangecolor: LongRangeColorTrackConfig,
     biginteract: BigInteractTrackConfig,
     cool: CoolTrackConfig,
     geneannotation: GeneAnnotationTrackConfig,
@@ -70,6 +83,16 @@ const TYPE_NAME_TO_CONFIG = {
     omeroidr: OmeroidrTrackConfig,
     omero4dn: Omero4dnTrackConfig,
     dynseq: DynseqTrackConfig,
+    rgbpeak: RgbpeakTrackConfig,
+    vcf: VcfTrackConfig,
+    boxplot: BoxplotTrackConfig,
+    bedcolor: BedcolorTrackConfig,
+    rmskv2: Rmskv2TrackConfig,
+    bigchain: GenomeAlignTrackConfig,
+    jaspar: JasparTrackConfig,
+    brgfa: BrgfaTrackConfig,
+    modbed: FiberTrackConfig, // fiber track was renamed to modbed meaning read modification data
+    ballc: BallcTrackConfig,
 };
 const DefaultConfig = TrackConfig;
 

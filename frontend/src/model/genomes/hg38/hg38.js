@@ -36,23 +36,29 @@ const navContext = genome.makeNavContext();
 const defaultRegion = navContext.parse("chr7:27053397-27373765");
 const defaultTracks = [
     new TrackModel({
+        type: "ruler",
+        name: "Ruler",
+    }),
+    new TrackModel({
         type: "geneAnnotation",
         name: "refGene",
         genome: "hg38",
     }),
     new TrackModel({
         type: "geneAnnotation",
-        name: "gencodeV29",
+        name: "gencodeV39",
+        genome: "hg38",
+    }),
+    new TrackModel({
+        type: "geneAnnotation",
+        name: "MANE_select_1.0",
+        label: "MANE selection v1.0",
         genome: "hg38",
     }),
     new TrackModel({
         type: "repeatmasker",
         name: "RepeatMasker",
         url: "https://vizhub.wustl.edu/public/hg38/rmsk16.bb",
-    }),
-    new TrackModel({
-        type: "ruler",
-        name: "Ruler",
     }),
 ];
 
@@ -72,9 +78,72 @@ const publicHubData = {
         "cells and circumstances in which a gene is active.",
     "SARS-CoV-2 Host Transcriptional Responses (Blanco-Melo, et al. 2020) Database":
         "A database consisting of host (human) transcriptional changes resulting from SARS-CoV-2 and other respiratory infections in in vitro, ex vivo, and in vivo systems.",
+    "Reference human epigenomes from Roadmap Epigenomics Consortium":
+        "The NIH Roadmap Epigenomics Mapping Consortium was launched with the goal of producing a public resource of human epigenomic data to catalyze basic biology and disease-oriented research. The Consortium leverages experimental pipelines built around next-generation sequencing technologies to map DNA methylation, histone modifications, chromatin accessibility and small RNA transcripts in stem cells and primary ex vivo tissues selected to represent the normal counterparts of tissues and organ systems frequently involved in human disease (quoted from Roadmap website).",
+    "Image collection":
+        "Image data from the Image Data Resource (IDR) or 4DN. Images are mapped to genomic coordinates with annotation gene id or symbol.",
+    "Human Pangenome Reference Consortium (HPRC)":
+        "The Human Pangenome Reference Consortium (HPRC) is a project funded by the National Human Genome Research Institute to sequence and assemble genomes from individuals from diverse populations in order to better represent genomic landscape of diverse human populations.",
 };
 
 const publicHubList = [
+    {
+        collection: "Human Pangenome Reference Consortium (HPRC)",
+        name: "HPRC long read methylation data",
+        numTracks: 12,
+        oldHubFormat: false,
+        url: "https://vizhub.wustl.edu/public/hg38/modbed/hub.json",
+        description: "modbed format methylation track on PacBio and ONT platforms, for 6 sample sources.",
+    },
+    {
+        collection: "Reference human epigenomes from Roadmap Epigenomics Consortium",
+        name: "All Chromatin states tracks",
+        numTracks: 352,
+        oldHubFormat: false,
+        url: "https://vizhub.wustl.edu/public/hg38/roadmap_hmm.json",
+        description:
+            "include 15 state core model from observed data, 18 state expanded model from observed data and 25 state model from imputed data. Lifted from hg19 results.",
+    },
+    {
+        collection: "Reference human epigenomes from Roadmap Epigenomics Consortium",
+        name: "Roadmap ChIP-seq datasets",
+        numTracks: 12494,
+        oldHubFormat: false,
+        url: "https://vizhub.wustl.edu/public/hg38/Roadmap_hg38_ChIPseq_June2021.json",
+        description: "Roadmap ChIP-seq data. Data are hosted by ENCODE data portal.",
+    },
+    {
+        collection: "Reference human epigenomes from Roadmap Epigenomics Consortium",
+        name: "Roadmap RNA-seq, WGBS etc. datasets",
+        numTracks: 5586,
+        oldHubFormat: false,
+        url: "https://vizhub.wustl.edu/public/hg38/Roadmap_hg38_others_June2021.json",
+        description: "Roadmap RNA-seq, WGBS etc. Data are hosted by ENCODE data portal.",
+    },
+    {
+        collection: "Image collection",
+        name: "IDR image data",
+        numTracks: 28,
+        oldHubFormat: false,
+        url: "https://vizhub.wustl.edu/public/imagetrack/hg38/hg38.json",
+        description: {
+            "hub built by": "Daofeng Li (dli23@wustl.edu)",
+            "total number of images": 539977,
+            "hub built notes": "covered 28 human datasets from IDR",
+        },
+    },
+    {
+        collection: "Image collection",
+        name: "4dn image data",
+        numTracks: 1,
+        oldHubFormat: false,
+        url: "https://vizhub.wustl.edu/public/imagetrack/hg38/4dn/hg38.json",
+        description: {
+            "hub built by": "Daofeng Li (dli23@wustl.edu)",
+            "total number of images": 601,
+            "hub built notes": "mixed image datasets for hg38 in 4dn",
+        },
+    },
     {
         collection: "Encyclopedia of DNA Elements (ENCODE)",
         name: "ENCODE signal of unique reads",
@@ -94,12 +163,12 @@ const publicHubList = [
     {
         collection: "4D Nucleome Network",
         name: "4DN datasets",
-        numTracks: 344,
+        numTracks: 2876,
         oldHubFormat: false,
-        url: "https://wangftp.wustl.edu/~dli/eg-hubs/4dn/2019/4dn-human.json",
+        url: "https://vizhub.wustl.edu/public/4dn/4dn-GRCh38-July2021.json",
         description: {
             "hub built by": "Daofeng Li (dli23@wustl.edu)",
-            "hub built date": "Dec 3 2019",
+            "last update": "Jul 14 2021",
             "hub built notes": "metadata information are obtained directly from 4DN data portal",
         },
     },

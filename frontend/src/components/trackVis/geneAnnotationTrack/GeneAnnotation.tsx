@@ -1,20 +1,19 @@
 import React from 'react';
 import _ from 'lodash';
-
+import shortid from 'shortid';
 import AnnotationArrows from '../commonComponents/annotation/AnnotationArrows';
-
 import Gene from '../../../model/Gene';
 import { FeaturePlacer, PlacedFeature, PlacedSegment } from '../../../model/FeaturePlacer';
-import shortid from 'shortid';
 
 const FEATURE_PLACER = new FeaturePlacer();
 const HEIGHT = 9;
 const UTR_HEIGHT = 5;
 export const DEFAULT_OPTIONS = {
     color: 'blue',
-    backgroundColor: 'white',
+    backgroundColor: 'var(--bg-color)',
     categoryColors: {
         coding: 'rgb(101,1,168)',
+        protein_coding: 'rgb(101,1,168)',
         nonCoding: 'rgb(1,193,75)',
         pseudogene: 'rgb(230,0,172)',
         pseudo: 'rgb(230,0,172)',
@@ -23,6 +22,8 @@ export const DEFAULT_OPTIONS = {
         other: 'rgb(128,128,128)'
     },
     hiddenPixels: 0.5,
+    italicizeText: false,
+    hideMinimalItems: false,
 }
 
 interface GeneDisplayOptions {
@@ -52,7 +53,8 @@ export class GeneAnnotation extends React.Component<GeneAnnotationProps> {
 
         return {
             color: mergedOptions.categoryColors[gene.transcriptionClass] || mergedOptions.color,
-            backgroundColor: mergedOptions.backgroundColor
+            backgroundColor: mergedOptions.backgroundColor,
+            italicizeText: mergedOptions.italicizeText
         };
     }
 
@@ -71,11 +73,11 @@ export class GeneAnnotation extends React.Component<GeneAnnotationProps> {
      * @param {string} color - color of all the rectangles
      * @return {JSX.Element[]} <rect> elements
      */
-    _renderCenteredRects(placedSegments: PlacedSegment[], height: number, color: string) {
+    _renderCenteredRects(placedSegments: PlacedSegment[], height: number, color: string, opacity: number = 1) {
         return placedSegments.map(placedSegment => {
             const x = placedSegment.xSpan.start;
             const width = Math.max(placedSegment.xSpan.getLength(), 3); // min 3 px for exon
-            return <rect key={x + shortid.generate()} x={x} y={(HEIGHT - height) / 2} width={width} height={height} fill={color} />;
+            return <rect key={x + shortid.generate()} x={x} y={(HEIGHT - height) / 2} width={width} height={height} fill={color} opacity={opacity} />;
         });
     }
 
@@ -121,7 +123,8 @@ export class GeneAnnotation extends React.Component<GeneAnnotationProps> {
         />;
 
         // utrArrowCover covers up arrows where the UTRs will be
-        const utrArrowCover = this._renderCenteredRects(placedUtrs, HEIGHT, backgroundColor);
+        const utrArrowCover = this._renderCenteredRects(placedUtrs, HEIGHT, backgroundColor, 0);
+        // const utrArrowCover = this._renderCenteredRects(placedUtrs, HEIGHT, 'white'); //somehow Illustrator don't understand css variables?
         const utrRects = this._renderCenteredRects(placedUtrs, UTR_HEIGHT, color);
 
         return (

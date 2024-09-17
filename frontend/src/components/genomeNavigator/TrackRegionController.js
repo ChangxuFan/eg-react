@@ -8,13 +8,12 @@ import { CopyToClip } from "../CopyToClipboard";
 
 const MODAL_STYLE = {
     content: {
-        top: "40px",
-        left: "300px",
+        top: "50px",
+        left: "295px",
         right: "unset",
         bottom: "unset",
         overflow: "visible",
         padding: "5px",
-        color: "black",
     },
     overlay: {
         backgroundColor: "rgba(111,107,101, 0.7)",
@@ -48,6 +47,7 @@ class TrackRegionController extends React.Component {
          *         `newEnd`: the nav context coordinate of the end of the interval
          */
         onRegionSelected: PropTypes.func.isRequired,
+        onNewHighlight: PropTypes.func,
     };
 
     constructor(props) {
@@ -56,6 +56,7 @@ class TrackRegionController extends React.Component {
         this.state = {
             badInputMessage: "",
             showModal: false,
+            doHighlight: false,
         };
         this.handleOpenModal = this.handleOpenModal.bind(this);
         this.handleCloseModal = this.handleCloseModal.bind(this);
@@ -76,6 +77,12 @@ class TrackRegionController extends React.Component {
             this.parseRegion();
         }
     }
+
+    handleHighlightToggle = () => {
+        this.setState((prevState) => {
+            return { doHighlight: !prevState.doHighlight };
+        });
+    };
 
     /**
      * Parses user input that expresses a desired region for tracks to display.
@@ -99,21 +106,21 @@ class TrackRegionController extends React.Component {
             this.setState({ badInputMessage: "" });
         }
         this.props.onRegionSelected(parsedRegion.start, parsedRegion.end);
-        this.props.onSetEnteredRegion(navContext.getLociInInterval(parsedRegion.start, parsedRegion.end)[0]);
+        if (this.state.doHighlight) {
+            this.props.onNewHighlight(parsedRegion.start, parsedRegion.end);
+        }
         this.handleCloseModal();
     }
-
-    // handleClick(event) {
-    //     event.currentTarget.select();
-    // }
 
     /**
      * @inheritdoc
      */
     render() {
+        const { color, background } = this.props.contentColorSetup;
+        const content = { ...MODAL_STYLE.content, color, background };
         const coordinates = this.props.selectedRegion.currentRegionAsString();
         return (
-            <div className="tool-element">
+            <div className="bg tool-element">
                 <button className="btn btn-secondary" onClick={this.handleOpenModal}>
                     {coordinates}
                 </button>
@@ -123,18 +130,31 @@ class TrackRegionController extends React.Component {
                     ariaHideApp={false}
                     onRequestClose={this.handleCloseModal}
                     shouldCloseOnOverlayClick={true}
-                    style={MODAL_STYLE}
+                    style={{ ...MODAL_STYLE, content }}
                 >
                     <span className="text-right" style={X_BUTTON_STYLE} onClick={this.handleCloseModal}>
                         ×
                     </span>
+                    <div>
+                        <span>
+                            Highlight search{" "}
+                            <input
+                                type="checkbox"
+                                name="do-highlight"
+                                checked={this.state.doHighlight}
+                                onChange={this.handleHighlightToggle}
+                            />
+                        </span>
+                    </div>
                     <h6>Gene search</h6>
                     <GeneSearchBox
                         navContext={this.props.selectedRegion.getNavigationContext()}
                         onRegionSelected={this.props.onRegionSelected}
                         handleCloseModal={this.handleCloseModal}
-                        onToggleHighlight={this.props.onToggleHighlight}
-                        onSetEnteredRegion={this.props.onSetEnteredRegion}
+                        onNewHighlight={this.props.onNewHighlight}
+                        color={color}
+                        background={background}
+                        doHighlight={this.state.doHighlight}
                     />
                     {!this.props.virusBrowserMode && (
                         <>
@@ -143,8 +163,10 @@ class TrackRegionController extends React.Component {
                                 navContext={this.props.selectedRegion.getNavigationContext()}
                                 onRegionSelected={this.props.onRegionSelected}
                                 handleCloseModal={this.handleCloseModal}
-                                onToggleHighlight={this.props.onToggleHighlight}
-                                onSetEnteredRegion={this.props.onSetEnteredRegion}
+                                onNewHighlight={this.props.onNewHighlight}
+                                color={color}
+                                background={background}
+                                doHighlight={this.state.doHighlight}
                             />
                         </>
                     )}

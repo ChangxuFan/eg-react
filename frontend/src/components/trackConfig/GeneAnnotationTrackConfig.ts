@@ -1,10 +1,12 @@
-import { AnnotationTrackConfig } from './AnnotationTrackConfig';
-import GeneAnnotationTrack from '../trackVis/geneAnnotationTrack/GeneAnnotationTrack';
-import { DEFAULT_OPTIONS } from '../trackVis/geneAnnotationTrack/GeneAnnotation';
-import GeneSource from '../../dataSources/GeneSource';
-import Gene from '../../model/Gene';
-import { TrackModel } from '../../model/TrackModel';
-import HiddenPixelsConfig from '../trackContextMenu/HiddenPixelsConfig';
+import HideMinimalItemsConfig from "components/trackContextMenu/HideMinimalItemsConfig";
+import { AnnotationTrackConfig } from "./AnnotationTrackConfig";
+import GeneAnnotationTrack from "../trackVis/geneAnnotationTrack/GeneAnnotationTrack";
+import { DEFAULT_OPTIONS } from "../trackVis/geneAnnotationTrack/GeneAnnotation";
+import GeneSource from "../../dataSources/GeneSource";
+import Gene from "../../model/Gene";
+import { TrackModel } from "../../model/TrackModel";
+import HiddenPixelsConfig from "../trackContextMenu/HiddenPixelsConfig";
+import ItalicizeTextConfig from "components/trackContextMenu/ItalicizeTextConfig";
 
 export class GeneAnnotationTrackConfig extends AnnotationTrackConfig {
     constructor(trackModel: TrackModel) {
@@ -17,7 +19,7 @@ export class GeneAnnotationTrackConfig extends AnnotationTrackConfig {
     }
 
     formatData(data: any[]) {
-        return data.map(record => new Gene(record));
+        return data.map((record) => new Gene(record));
     }
 
     getComponent() {
@@ -25,6 +27,6 @@ export class GeneAnnotationTrackConfig extends AnnotationTrackConfig {
     }
 
     getMenuComponents() {
-        return [...super.getMenuComponents(), HiddenPixelsConfig];
+        return [...super.getMenuComponents(), ItalicizeTextConfig, HiddenPixelsConfig, HideMinimalItemsConfig];
     }
 }

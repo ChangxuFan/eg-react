@@ -6,11 +6,6 @@
  *
  */
 import { createStore, combineReducers, compose } from "redux";
-import { getGenomeConfig } from "./model/genomes/allGenomes";
-import DisplayedRegionModel from "./model/DisplayedRegionModel";
-import { AppStateSaver, AppStateLoader } from "./model/AppSaveLoad";
-import TrackModel from "./model/TrackModel";
-import RegionSet from "./model/RegionSet";
 import uuid from "uuid";
 import * as firebase from "firebase/app";
 import "firebase/database";
@@ -18,11 +13,18 @@ import { firebaseReducer, reactReduxFirebase } from "react-redux-firebase";
 import undoable from "redux-undo";
 import querySting from "query-string";
 import _ from "lodash";
+import { getGenomeConfig } from "./model/genomes/allGenomes";
+import DisplayedRegionModel from "./model/DisplayedRegionModel";
+import { AppStateSaver, AppStateLoader } from "./model/AppSaveLoad";
+import TrackModel, { mapUrl } from "./model/TrackModel";
+import RegionSet from "./model/RegionSet";
+import { HighlightInterval } from "./components/trackContainers/HighlightMenu";
 import Json5Fetcher from "./model/Json5Fetcher";
 import DataHubParser from "./model/DataHubParser";
 import OpenInterval from "./model/interval/OpenInterval";
 import { Genome } from "./model/genomes/Genome";
 import Chromosome from "./model/genomes/Chromosome";
+import { uncompressString } from "./components/ShareUI";
 
 export let STORAGE: any = window.sessionStorage;
 if (process.env.NODE_ENV === "test") {
@@ -53,6 +55,20 @@ export const NO_SAVE_SESSION = "eg-no-session";
 export const MIN_VIEW_REGION_SIZE = 5;
 export const DEFAULT_TRACK_LEGEND_WIDTH = 120;
 
+// if need change, also need change css variable in
+const DARK_FG_COLOR = "white";
+const DARK_BG_COLOR = "#222";
+const LIGHT_FG_COLOR = "#222";
+const LIGHT_BG_COLOR = "white";
+
+export function getFgColor(isDark: boolean) {
+    return isDark ? DARK_FG_COLOR : LIGHT_FG_COLOR;
+}
+
+export function getBgColor(isDark: boolean) {
+    return isDark ? DARK_BG_COLOR : LIGHT_BG_COLOR;
+}
+
 export interface AppState {
     genomeName: string;
     viewRegion: DisplayedRegionModel;
@@ -69,11 +85,13 @@ export interface AppState {
     genomeConfig?: object;
     virusBrowserMode?: boolean;
     layout?: object;
-    // threedTracks?: TrackModel[];
+    // g3dtracks?: TrackModel[];
+    highlights?: HighlightInterval[];
+    darkTheme?: boolean;
 }
 
 const bundleId = uuid.v1();
-
+const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
 const initialState: AppState = {
     genomeName: "",
     viewRegion: null,
@@ -88,7 +106,9 @@ const initialState: AppState = {
     isShowingVR: false,
     customTracksPool: [],
     layout: {},
-    // threedTracks: [],
+    // g3dtracks: [],
+    highlights: [],
+    darkTheme: prefersDark,
 };
 
 enum ActionType {
@@ -110,7 +130,9 @@ enum ActionType {
     SET_VIRUS_BROWSER_MODE = "SET_VIRUS_BROWSER_MODE",
     SET_HUB_SESSION_STORAGE = "SET_HUB_SESSION_STORAGE",
     SET_LAYOUT = "SET_LAYOUT",
-    // SET_THREED_TRACKS = "SET_THREED_TRACKS",
+    // SET_G3D_TRACKS = "SET_G3D_TRACKS",
+    SET_HIGHLIGHTS = "SET_HIGHLIGHTS",
+    SET_DARK_THEME = "SET_DARK_THEME",
 }
 
 interface AppAction {
@@ -194,7 +216,11 @@ export const ActionCreators = {
         return { type: ActionType.SET_CUSTOM_TRACKS_POOL, customTracksPool };
     },
 
-    setTracksCustomTracksPool: (tracks: TrackModel[], customTracksPool: TrackModel[], withDefaultTracks: boolean = true) => {
+    setTracksCustomTracksPool: (
+        tracks: TrackModel[],
+        customTracksPool: TrackModel[],
+        withDefaultTracks: boolean = true
+    ) => {
         return {
             type: ActionType.SET_TRACKS_CUSTOM_TRACKS_POOL,
             tracks,
@@ -227,19 +253,30 @@ export const ActionCreators = {
     },
 
     // setThreedTracks: (newTracks: TrackModel[]) => {
-    //     return { type: ActionType.SET_THREED_TRACKS, threedTracks: newTracks };
+    //     return { type: ActionType.SET_G3D_TRACKS, threedTracks: newTracks };
     // },
+
+    /**
+     * Action for updating state for highlight items
+     * @param highlights array of HighlightItems that are created in HighlightMenu.js
+     * @returns
+     */
+    setHighlights: (highlights: HighlightInterval[]) => {
+        // console.log(highlights);
+        return { type: ActionType.SET_HIGHLIGHTS, highlights };
+    },
+
+    setDarkTheme: (darkTheme: boolean) => {
+        return { type: ActionType.SET_DARK_THEME, darkTheme };
+    },
 };
 
 function getInitialState(): AppState {
     let state = initialState;
-
     const { query } = querySting.parseUrl(window.location.href);
     let newState;
     if (!_.isEmpty(query)) {
-        if (query.bundle) {
-            newState = { ...state, bundleId: query.bundle, sessionFromUrl: true };
-        }
+        // console.log(query);
         if (query.session) {
             window.location.href = `http://epigenomegateway.wustl.edu/legacy/?genome=${query.genome}&session=${query.session}&statusId=${query.statusId}`;
         }
@@ -261,6 +298,17 @@ function getInitialState(): AppState {
                 genomeName: query.genome,
             });
         }
+        if (query.bundle) {
+            if (query.genome) {
+                newState = { ...newState, bundleId: query.bundle, sessionFromUrl: true };
+            } else {
+                newState = { ...state, bundleId: query.bundle, sessionFromUrl: true };
+            }
+        }
+        if (query.blob) {
+            const json = JSON.parse(uncompressString(query.blob));
+            newState = new AppStateLoader().fromObject(json);
+        }
         if (query.hicUrl) {
             const tmpState = getNextState(state, {
                 type: ActionType.SET_GENOME,
@@ -276,10 +324,18 @@ function getInitialState(): AppState {
         }
         if (query.position) {
             const interval = newState.viewRegion.getNavigationContext().parse(query.position as string);
-            newState = getNextState(newState as AppState, {
-                type: ActionType.SET_VIEW_REGION,
-                ...interval,
-            });
+            if (newState) {
+                newState = getNextState(newState as AppState, {
+                    type: ActionType.SET_VIEW_REGION,
+                    ...interval,
+                });
+            }
+            if (query.highlightPosition) {
+                newState = getNextState(newState as AppState, {
+                    type: ActionType.SET_HIGHLIGHTS,
+                    highlights: [new HighlightInterval(interval.start, interval.end)],
+                });
+            }
         }
         if (query.virusBrowserMode) {
             const tmpState = getNextState(state, {
@@ -290,6 +346,7 @@ function getInitialState(): AppState {
                 type: ActionType.SET_VIRUS_BROWSER_MODE,
             });
         }
+        // console.log(newState);
         return (newState as AppState) || (state as AppState);
     }
     const blob = STORAGE.getItem(SESSION_KEY);
@@ -323,6 +380,7 @@ function getNextState(prevState: AppState, action: AppAction): AppState {
                 genomeName: action.genomeName,
                 viewRegion: nextViewRegion,
                 tracks: nextTracks,
+                darkTheme: prevState.darkTheme,
             };
         case ActionType.SET_CUSTOM_VIRUS_GENOME: // Setting virus genome.
             const virusTracks = action.tracks.map((data: any) => TrackModel.deserialize(data));
@@ -373,7 +431,11 @@ function getNextState(prevState: AppState, action: AppAction): AppState {
         case ActionType.SET_TRACK_LEGEND_WIDTH:
             return { ...prevState, trackLegendWidth: action.width };
         case ActionType.RESTORE_SESSION:
-            return new AppStateLoader().fromObject(action.sessionState);
+            const sessionState = new AppStateLoader().fromObject(action.sessionState);
+            if (!sessionState.bundleId) {
+                return { ...sessionState, bundleId: uuid.v1() };
+            }
+            return sessionState;
         case ActionType.RETRIEVE_BUNDLE:
             return { ...prevState, bundleId: action.bundleId };
         case ActionType.SET_GENOME_RESTORE_SESSION:
@@ -390,7 +452,7 @@ function getNextState(prevState: AppState, action: AppAction): AppState {
                 isShowingVR: !prevState.isShowingVR,
             };
         case ActionType.SET_TRACKS_CUSTOM_TRACKS_POOL:
-            const tracks = action.withDefaultTracks ? [...prevState.tracks, ...action.tracks]: [...action.tracks];
+            const tracks = action.withDefaultTracks ? [...prevState.tracks, ...action.tracks] : [...action.tracks];
             return {
                 ...prevState,
                 tracks,
@@ -410,8 +472,12 @@ function getNextState(prevState: AppState, action: AppAction): AppState {
             };
         case ActionType.SET_LAYOUT:
             return { ...prevState, layout: action.layout };
-        // case ActionType.SET_THREED_TRACKS:
+        // case ActionType.SET_G3D_TRACKS:
         //     return { ...prevState, threedTracks: action.tracks };
+        case ActionType.SET_HIGHLIGHTS:
+            return { ...prevState, highlights: action.highlights };
+        case ActionType.SET_DARK_THEME:
+            return { ...prevState, darkTheme: action.darkTheme };
         default:
             // console.warn("Unknown change state action; ignoring.");
             // console.warn(action);
@@ -422,7 +488,7 @@ function getNextState(prevState: AppState, action: AppAction): AppState {
 async function getTracksFromHubURL(url: string): Promise<any> {
     const json = await new Json5Fetcher().get(url);
     const hubParser = new DataHubParser();
-    return await hubParser.getTracksInHub(json, "URL hub", false, 0);
+    return await hubParser.getTracksInHub(json, "URL hub", "", false, 0);
 }
 
 /**
@@ -493,25 +559,34 @@ async function asyncInitState() {
     const { query } = querySting.parseUrl(window.location.href);
     if (!_.isEmpty(query)) {
         if (query.hub) {
-            const withDefaultTracks = !query.noDefaultTracks || (query.noDefaultTracks ? false: true);
-            const customTracksPool = await getTracksFromHubURL(query.hub as string);
+            const withDefaultTracks = !query.noDefaultTracks || (query.noDefaultTracks ? false : true);
+            const customTracksPool = await getTracksFromHubURL(mapUrl(query.hub as string));
             if (customTracksPool) {
                 const tracks = customTracksPool.filter((track: any) => track.showOnHubLoad);
                 if (tracks.length > 0) {
-                    AppState.dispatch(ActionCreators.setTracksCustomTracksPool(tracks, customTracksPool, withDefaultTracks));
+                    AppState.dispatch(
+                        ActionCreators.setTracksCustomTracksPool(tracks, customTracksPool, withDefaultTracks)
+                    );
                 } else {
                     AppState.dispatch(ActionCreators.setCustomTracksPool(customTracksPool));
                 }
             }
         }
         if (query.sessionFile) {
-            const json = await new Json5Fetcher().get(query.sessionFile as string);
+            const json = await new Json5Fetcher().get(mapUrl(query.sessionFile as string));
             if (json) {
                 AppState.dispatch(ActionCreators.restoreSession(json));
+                // when position in URL with sessionFile, see issue #245
+                if (query.position) {
+                    const state = new AppStateLoader().fromObject(json);
+                    const interval = state.viewRegion.getNavigationContext().parse(query.position as string);
+                    AppState.dispatch(ActionCreators.setViewRegion(interval.start, interval.end));
+                }
             }
         }
         if (query.hubSessionStorage) {
-            const customTracksPool = await getTracksFromHubURL(query.hubSessionStorage as string);
+            // reads data from both session storage and hubSessionStorage URL which is a josn hub, need check if genome changed or not
+            const customTracksPool = await getTracksFromHubURL(mapUrl(query.hubSessionStorage as string));
             if (customTracksPool) {
                 const tracksInHub = customTracksPool.filter((track: any) => track.showOnHubLoad);
                 const blob = STORAGE.getItem(SESSION_KEY);

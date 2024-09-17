@@ -1,8 +1,163 @@
 # Version History
 
+## 54.0.6
+
+-   add the new genome `GCF_012559485.2`
+-   add the new genome `bosTau9`
+-   Switched T2T gene annotation from using `gencodeV35.bed` to `catLiftOffGenesV1.bed`
+
+## 54.0.5
+
+-   add the `ballc` track support
+
+## 54.0.4
+
+-   add `pixelsPadding` option for `modbed` track while display in heatmap mode, used for padding the drawing tick pixel
+-   add HPRC modbed hub for `hg38`
+-   add the genome `rn5`
+
+## 54.0.3
+
+-   fix an bug that screenshot UI doesn't show axis label
+-   fix #319
+
+## 54.0.2
+
+-   Fix Chrome 112 Navbar nested css problem (by Shane)
+-   small changes to modbed base pair level visualization
+
+## 54.0.1
+
+-   new genome for _Parhyale hawaiensis_ version 5 is added
+-   added an option to hide minimal annotations
+-   removed some old version gene annotation tracks (files can be requested if still need)
+
+## 54.0.0
+
+-   added new track type `modbed` for display long read sequencing methylation data
+-   added ensembl style for matplot and dynamic tracks
+-   fixed a screenshot bug when svg imported to Adobe Illustrator
+-   removed default highlight for gene/snp/region search
+-   added `highlightPosition` url parameter, used with `position`, for example `&position=chr3:181429711-181432223&highlightPosition=1` will jump to `chr3:181429711-181432223` and highlight it at same time
+
+## 53.8.0
+
+-   added light/dark theme setting
+-   added view sharing via email/embed/QR code
+
+## 53.7.0
+
+-   added MANE select 1.0 for hg38
+-   updated gencode tracks for hg38, hg19, mm39 and mm10
+-   add opitimization for dropbox shared hubs
+
+## 53.6.3
+
+-   3D viewer can enable region set view from segments
+-   fixed a bug that MIN/MAX aggregator in numeric track crash
+-   added `t2t-chm13-v2.0`
+-   fixed sceenshot issue with genome align track, reported by #252
+-   added highlights in screenshot by #251
+
+## 53.6.2
+
+-   `rn7` added
+-   `qBed` add secondary color config and horizontal line option per Slack user request
+-   imporved highlighting functions
+
+## 53.6.1
+
+-   changed circlet view UI slightly
+-   added chord view
+-   added Jaspar 2022 TF tracks to Annotation track sets
+
+## 53.6.0
+
+-   new genomes `susScr3`, `calJac4`, `rheMac10` added.
+-   UI, button styles changes from Shane Liu
+-   added cookie consent notice
+
+## 53.5.2
+
+-   new genomes `susScr11`, `oviAri4` and Brapa ([#228](https://github.com/lidaof/eg-react/issues/228)) added.
+-   image tracks/hubs update
+-   add new feature to allow long range tracks with colors for each arc/heatmap diamond
+
+## 53.5.1
+
+-   add spin utility for 3d model viewer
+-   add `clampHeight` option to chromatin interaction track for `arc` and `heatmap` style
+
+## 53.5.0
+
+-   removed unnecessary re-render of numerical track
+-   adding push notification
+-   allow HiC track bin size and normalization options linked to the hic file itself
+-   add an option `italicizeText` to allow _italic_ text/label on gene tracks
+-   new genome `xenTro10` added
+
+## 53.4.1
+
+-   added `bigchain` format support
+-   `bigchain` and `genomealign` can be added from remote track UI with specify a query genome
+-   layout header height bug fix
+-   region jumping following UCSC Browser: position coordinates `chr6:130129863-130129899` (1 based, 37bp), bed coordinate `chr6 130129863 130129899` (0 based, 36bp)
+
+## 53.4.0
+
+-   new T2T genome assembly `t2t-chm13-v1.1` added
+-   improved 3D module
+-   support Repeatmasker V2 format bigbed, track type `rmskv2`
+
+## 53.3.2
+
+-   for `bigwig` track, specify `ensemblStyle` option to `true` can enable data with chromosome names as 1, 2, 3...work in the browser
+-   `bedcolor` track type
+-   Roadmap (hg38) hub update
+-   more genome alignment tracks
+-   pdf output label alignment improvement
+
+## 53.3.1
+
+-   switched to `@gmod/bbi` library for bigwig data fetching
+-   removed zoom level configuration for bigWig track
+
+## 53.3.0
+
+-   updated 4DN data hubs
+-   fixed a screenshot bug while tracks are grouped
+
+## 53.2.0
+
+-   introduce `boxplot` track type show numerical data in small window as boxplots
+
+## 53.1.0
+
+-   `vcf` track bug fix for certain tooltip clicking
+-   updated SARS-CoV-2 data hubs by Changxu Fan
+
+## 53.0.0
+
+-   3D structure view module added, for more please check [the 3D documentation](https://eg.readthedocs.io/en/latest/3d.html)
+-   basic support for `vcf` format
+
+## 52.5.2
+
+-   add an option `queryEndpoint` to `TrackModel` allow customization of gene/feature annotaion query
+-   added 2 new Trypanosome genomes `TbruceiTREU927` and `TbruceiLister427` per user's request
+
+## 52.5.1
+
+-   fixed a bug that `dynseq` track doesn't work correctly in Safari
+-   fixed a bug that screenshot error on `hic` heatmap mode
+-   fixed a bug that `longrange` track cannot change name/label
+-   added a feature that sessions are sorted by date by dafault, can change to sorting by label
+-   add a new track type `rgbpeak` to show the peaks in `bigbed` format supporting `itemRgb` attribute
+-   added a new virus genome `hpv16`, ref sequence from https://www.ncbi.nlm.nih.gov/nuccore/NC_001526.4, gene annotation from https://www.ncbi.nlm.nih.gov/assembly/GCF_000863945.3/
+
 ## 52.5.0
 
--   Dynamic sequence track type `dynseq` added, the track type is proposed and initially developped by Surag Nai from Anshul Kundaje's lab at Stanford University
+-   Dynamic sequence track type `dynseq` added, the track type is proposed and initially developped by Surag Nair from Anshul Kundaje's lab at Stanford University
 
 ## 52.4.1
 
@@ -11,7 +166,7 @@
 
 ## 52.4.0
 
--   added percentile scale for interaction tracks (`hic`, `longrange` etc.)
+-   added percentile scale for interaction tracks (`hic`, `longrange`) etc.
 -   improved fixed scale config for numerical tracks
 -   video output for dynamic track
 -   added the highlight beams for interaction track at `heatmap` mode

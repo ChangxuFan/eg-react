@@ -9,6 +9,12 @@ export const AnnotationDisplayModes = {
     DENSITY: "density",
 };
 
+export const GraphDisplayModes = {
+    FULL: "full",
+    DENSITY: "density",
+    HENGLI: "hengli",
+};
+
 export enum InteractionDisplayMode {
     HEATMAP = "heatmap",
     ARC = "arc",
@@ -34,3 +40,19 @@ export const BigWigZoomLevels = {
     3: 3,
     4: 4,
 };
+
+export const VcfColorScaleKeys = {
+    QUAL: "QUAL",
+    AF: "AF",
+};
+
+export const VcfDisplayModes = {
+    AUTO: "auto",
+    DENSITY: "density",
+    FULL: "full",
+};
+
+export enum FiberDisplayModes {
+    AUTO = "auto",
+    HEATMAP = "heatmap",
+}

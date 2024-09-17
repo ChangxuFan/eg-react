@@ -17,7 +17,7 @@ export const THUMBNAIL_PADDING = 2;
 
 export const DEFAULT_OPTIONS = {
     imageHeight: [73],
-    backgroundColor: "white",
+    backgroundColor: "var(--bg-color)",
     fetchViewWindowOnly: true,
     imageAspectRatio: 1.315, // default ratio for IDR for many images as checked
     displayMode: AnnotationDisplayModes.FULL,
@@ -68,7 +68,8 @@ class OmeroTrack extends React.PureComponent {
     };
 
     render() {
-        const { trackModel, data, forceSvg, options, viewWindow, width, layoutModel } = this.props;
+        const { trackModel, data, forceSvg, options, viewWindow, width, layoutModel, isThereG3dTrack, onSetImageInfo } =
+            this.props;
         const { trackHeight, numHidden } = this.state;
         const visualizer = forceSvg ? (
             <OmeroSvgVisualizer
@@ -89,6 +90,8 @@ class OmeroTrack extends React.PureComponent {
                 trackModel={trackModel}
                 imageAspectRatio={options.imageAspectRatio}
                 layoutModel={layoutModel} //html only for highlighting the panel when the image already rendered but same tooltip is clicked again
+                isThereG3dTrack={isThereG3dTrack}
+                onSetImageInfo={onSetImageInfo}
             />
         );
         const message = <HiddenImagesMessage numHidden={numHidden} />;

@@ -14,6 +14,8 @@ interface GeneAnnotationScaffoldProps {
     options?: {
         color?: string;
         backgroundColor?: string;
+        italicizeText?: boolean;
+        hideMinimalItems?: boolean;
     };
 
     /**
@@ -51,9 +53,9 @@ export class GeneAnnotationScaffold extends React.PureComponent<GeneAnnotationSc
     }
 
     render(): JSX.Element {
-        const { gene, xSpan, viewWindow, y, isMinimal, children } = this.props;
+        const { gene, xSpan, viewWindow, y, isMinimal, children, options } = this.props;
         const [xStart, xEnd] = xSpan;
-        const { color, backgroundColor } = GeneAnnotation.getDrawColors(gene, this.props.options);
+        const { color, backgroundColor, italicizeText } = GeneAnnotation.getDrawColors(gene, this.props.options);
 
         const coveringRect = (
             <rect // Box that covers the whole annotation to increase the click area
@@ -62,11 +64,15 @@ export class GeneAnnotationScaffold extends React.PureComponent<GeneAnnotationSc
                 width={xSpan.getLength()}
                 height={HEIGHT}
                 fill={isMinimal ? color : backgroundColor}
+                opacity={isMinimal ? 1 : 0}
             />
         );
 
         if (isMinimal) {
             // Just render a box if minimal.
+            if (options.hideMinimalItems) {
+                return null;
+            }
             return (
                 <TranslatableG y={y} onClick={this.handleClick}>
                     {coveringRect}
@@ -100,16 +106,21 @@ export class GeneAnnotationScaffold extends React.PureComponent<GeneAnnotationSc
             textAnchor = "start";
             labelHasBackground = true; // Need to add background for contrast purposes
         }
+        // misaligned lable issue when convert to pdf
+        // possible solution https://observablehq.com/@hastebrot/vertical-text-alignment-in-svg
         const label = (
             <BackgroundedText
                 x={labelX}
                 y={0}
                 height={GeneAnnotation.HEIGHT}
                 fill={color}
-                dominantBaseline="hanging"
+                // dominantBaseline="hanging"
+                // dominantBaseline="auto"
+                dy="0.65em"
                 textAnchor={textAnchor}
                 backgroundColor={backgroundColor}
                 backgroundOpacity={labelHasBackground ? 0.65 : 0}
+                italicizeText={italicizeText}
             >
                 {gene.getName()}
             </BackgroundedText>

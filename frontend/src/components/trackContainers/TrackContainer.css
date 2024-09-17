@@ -10,18 +10,18 @@
 .tool-panel {
     display: flex;
     flex-wrap: wrap;
-    .tool-element {
+    /* .tool-element {
         min-width: 33%;
         max-width: 100%;
         flex-grow: 1;
         flex-basis: calc(var(--multiplier) * 999);
-    }
+    } */
 }
 
 #beamLeft {
     position: absolute;
     border: 1px solid rgb(128, 166, 255);
-    z-index: 10;
+    z-index: 1;
     display: none;
     top: 0;
     height: 100%;
@@ -40,7 +40,7 @@
 #beamRight {
     position: absolute;
     border: 1px solid rgb(255, 133, 92);
-    z-index: 10;
+    z-index: 1;
     display: none;
     top: 0;
     height: 100%;

@@ -4,41 +4,74 @@ import { Tabs, Tab } from "react-bootstrap-tabs";
 import JSON5 from "json5";
 // import { notify } from 'react-notify-toast';
 import TrackModel from "../../model/TrackModel";
+import { getSecondaryGenomes } from "../../util";
 import CustomHubAdder from "./CustomHubAdder";
 import FacetTable from "./FacetTable";
 import { HELP_LINKS } from "../../util";
 import { TrackOptionsUI } from "./TrackOptionsUI";
+import { getTrackConfig } from "components/trackConfig/getTrackConfig";
 
 // Just add a new entry here to support adding a new track type.
 // const TRACK_TYPES = ['bigWig', 'bedGraph', 'methylC', 'categorical', 'bed', 'bigBed', 'repeatmasker','refBed', 'hic', 'longrange', 'bigInteract', 'cool', 'bam'];
 
 export const TRACK_TYPES = {
     Numerical: ["bigWig", "bedGraph", "qBED"],
-    Annotation: ["bed", "bigBed", "refBed"],
+    Variant: ["vcf"],
+    "Dynamic sequence": ["dynseq"],
+    Annotation: ["bed", "bigBed", "refBed", "bedcolor"],
+    Peak: ["rgbpeak"],
     Categorical: ["categorical"],
-    Methylation: ["methylC"],
-    Interaction: ["hic", "cool", "bigInteract", "longrange"],
-    Repeats: ["repeatmasker"],
-    Alignment: ["bam", "pairwise", "snv", "snv2"],
+    // "Transcription Factor": ["jaspar"],
+    "Genome graph": ["brgfa", "graph"],
+    Methylation: ["methylC", "modbed", "ballc"],
+    Interaction: ["hic", "cool", "bigInteract", "longrange", "longrangecolor"],
+    Stats: ["boxplot"],
+    Repeats: ["rmskv2", "repeatmasker"],
+    Alignment: ["bam", "pairwise", "snv", "snv2", "bigchain", "genomealign"],
     "3D Structure": ["g3d"],
     Dynamic: ["dbedgraph"],
     Image: ["omero4dn", "omeroidr"],
-    "Dynamic sequence": ["dynseq"],
 };
 
 export const NUMERRICAL_TRACK_TYPES = ["bigwig", "bedgraph"]; // the front UI we allow any case of types, in TrackModel only lower case
+
+const TYPES_NEED_INDEX = [
+    "bedgraph",
+    "methylc",
+    "categorical",
+    "bed",
+    "refbed",
+    "longrange",
+    "longrangecolor",
+    "bam",
+    "pairwise",
+    "snv",
+    "snv2",
+    "qbed",
+    "dbedgraph",
+    "vcf",
+    "genomealign",
+    "bedcolor",
+    "brgfa",
+    "graph",
+    "modbed",
+    "ballc",
+];
 
 export const TYPES_DESC = {
     bigWig: "numerical data",
     bedGraph: "numerical data, processed by tabix in .gz format",
     methylC: "methylation data, processed by tabix in .gz format",
+    ballc: "methylation data in ballc format",
     categorical: "categorical data, processed by tabix in .gz format",
     bed: "annotationd data, processed by tabix in .gz format",
+    bedcolor: "annotationd data with color, processed by tabix in .gz format",
     bigBed: "anotation data",
     repeatmasker: "repeats annotation data in bigBed format",
     refBed: "gene annotationd data, processed by tabix in .gz format",
     hic: "long range interaction data in hic format",
     longrange: "long range interaction data in longrange format",
+    longrangecolor: "long range interaction data in longrange format with feature and color",
     bigInteract: "long range interaction data in bigInteract format",
     cool: "long range interaction data in cool format, use data uuid instead of URL",
     bam: "reads alignment data",
@@ -51,6 +84,16 @@ export const TYPES_DESC = {
     omero4dn: "image data from 4DN (4D Nucleome Data Portal)",
     omeroidr: "image data from IDR (Image Data Resource)",
     dynseq: "dynamic sequence",
+    rgbpeak: "peak in bigbed format with RGB value",
+    vcf: "Variant Call Format",
+    boxplot: "show numerical data as boxplots",
+    rmskv2: "RepeatMasker V2 structure with color",
+    bigchain: "bigChain pairwise alignment",
+    genomealign: "genome pairwise alignment",
+    brgfa: "local genome graph in bed like rGFA format",
+    graph: "global genome graph in bed like rGFA format",
+    // jaspar: "transcription factor binding data from Jaspar",
+    modbed: "read modification for methylation etc.",
 };
 
 /**
@@ -65,6 +108,7 @@ class CustomTrackAdder extends React.Component {
         onTracksAdded: PropTypes.func,
         onAddTracksToPool: PropTypes.func,
         addTermToMetaSets: PropTypes.func,
+        genomeConfig: PropTypes.object.isRequired,
         addedTrackSets: PropTypes.instanceOf(Set),
     };
 
@@ -76,9 +120,12 @@ class CustomTrackAdder extends React.Component {
             url: "",
             name: "",
             urlError: "",
+            metadata: { genome: this.props.genomeConfig.genome.getName() },
             trackAdded: false,
             selectedTabIndex: 0,
+            querygenome: "",
             options: null, // custom track options
+            indexUrl: undefined,
         };
         this.handleSubmitClick = this.handleSubmitClick.bind(this);
     }
@@ -93,7 +140,13 @@ class CustomTrackAdder extends React.Component {
             this.setState({ urlError: "Enter a URL" });
             return;
         } else {
-            const newTrack = new TrackModel({ ...this.state, datahub: "Custom track" });
+            const newTrack = new TrackModel({ ...this.state, datahub: "Remote track" });
+            if (getTrackConfig(newTrack).isGenomeAlignTrack()) {
+                if (!this.state.querygenome) {
+                    this.setState({ urlError: "Please enter query genome for genomealign/bigchain track" });
+                    return;
+                }
+            }
             this.props.onTracksAdded([newTrack]);
             this.props.onAddTracksToPool([newTrack], false);
             this.setState({ urlError: "", trackAdded: true });
@@ -109,6 +162,14 @@ class CustomTrackAdder extends React.Component {
                     </option>
                 ))}
             </optgroup>
+        ));
+    }
+
+    renderGenomeOptions(allGenomes) {
+        return allGenomes.map((genome) => (
+            <option key={genome} value={genome}>
+                {genome}
+            </option>
         ));
     }
 
@@ -144,7 +205,10 @@ class CustomTrackAdder extends React.Component {
     };
 
     renderCustomTrackAdder() {
-        const { type, url, name, urlError } = this.state;
+        const { type, url, name, metadata, urlError, querygenome, indexUrl } = this.state;
+        const primaryGenome = this.props.genomeConfig.genome.getName();
+        var allGenomes = getSecondaryGenomes(primaryGenome, this.props.addedTracks);
+        allGenomes.unshift(primaryGenome);
         return (
             <form>
                 <h1>Add remote track</h1>
@@ -169,9 +233,8 @@ class CustomTrackAdder extends React.Component {
                         type="text"
                         className="form-control"
                         value={url}
-                        onChange={(event) => this.setState({ url: event.target.value })}
+                        onChange={(event) => this.setState({ url: event.target.value.trim() })}
                     />
-                    <span style={{ color: "red" }}>{urlError}</span>
                 </div>
                 <div className="form-group">
                     <label>Track label</label>
@@ -182,6 +245,41 @@ class CustomTrackAdder extends React.Component {
                         onChange={(event) => this.setState({ name: event.target.value })}
                     />
                 </div>
+                <div
+                    className="form-group"
+                    style={{ display: TYPES_NEED_INDEX.includes(type.toLowerCase()) ? "block" : "none" }}
+                >
+                    <label>Track index URL (optional, only need if data and index files are not in same folder)</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        value={indexUrl}
+                        onChange={(event) => this.setState({ indexUrl: event.target.value.trim() })}
+                    />
+                </div>
+                <div
+                    className="form-group"
+                    style={{ display: type === "bigchain" || type === "genomealign" ? "block" : "none" }}
+                >
+                    <label>Query genome</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        value={querygenome}
+                        onChange={(event) => this.setState({ querygenome: event.target.value.trim() })}
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Genome</label>
+                    <select
+                        className="form-control"
+                        value={metadata.genome}
+                        onChange={(event) => this.setState({ metadata: { genome: event.target.value } })}
+                    >
+                        {this.renderGenomeOptions(allGenomes)}
+                    </select>
+                </div>
+                <span style={{ color: "red" }}>{urlError}</span>
                 <TrackOptionsUI onGetOptions={(value) => this.getOptions(value)} />
                 {this.renderButtons()}
             </form>

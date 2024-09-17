@@ -4,7 +4,9 @@
 
 import sys, gzip
 
-#from https://github.com/ucscGenomeBrowser/kent/blob/022eb4f62a0af16526ca1bebcd9e68bd456265dc/src/hg/lib/gtexGeneBed.c
+#from https://github.com/ucscGenomeBrowser/kent/blob/master/src/hg/lib/gtexGeneBed.c#L248
+
+
 typeMap = {
     'IG_C_gene':'coding',
     'IG_D_gene':'coding',
@@ -39,6 +41,7 @@ typeMap = {
     'Mt_tRNA':'nonCoding',
     'antisense':'nonCoding',
     'lincRNA':'nonCoding',
+    'lncRNA':'nonCoding',
     'miRNA':'nonCoding',
     'misc_RNA':'nonCoding',
     'processed_transcript':'nonCoding',
@@ -68,7 +71,8 @@ def main():
             desc[t[4]] = t[7]
     d = {}
     #with gzip.open('gencode.vM18.annotation.gtf.gz', 'rb') as fin:
-    with open('gencode.vM18.annotation.gtf', 'rU') as fin:
+    # with open('gencode.vM18.annotation.gtf', 'rU') as fin:
+    with open('test.gtf', 'rU') as fin:
         for line in fin:
             if line.startswith('#'): continue
             t = line.strip().split('\t')
@@ -86,7 +90,7 @@ def main():
             gtype = genetype
             if genetype in typeMap:
                 gtype = typeMap[genetype]
-            start = t[3]
+            start = str(int(t[3]) - 1) # gtf is 1 based
             end = t[4]
             chrom = t[0]
             strand = t[6]
@@ -95,20 +99,21 @@ def main():
             if name in desc:
                 genedesc = desc[name]
             if t[2] == 'transcript':
-                d[geneid] = [geneid, chrom, strand, start, end, 'na','na', [], [], name, gtype, genedesc]
+                d[geneid] = [chrom, start, end, 'na','na', strand, name, geneid, gtype, [], [], genedesc]
             if t[2] == 'transcript':
-                d[geneid][5] = start
-                d[geneid][6] = end
+                d[geneid][3] = start
+                d[geneid][4] = end
             if t[2] == 'exon':
-                if start not in d[geneid][7]:
-                    d[geneid][7].append(start)
-                    if end not in d[geneid][8]:
-                        d[geneid][8].append(end)
+                if start not in d[geneid][9]:
+                    d[geneid][9].append(start)
+                if end not in d[geneid][10]:
+                    d[geneid][10].append(end)
     for k in d:
         v = d[k]
-        v[7] = '{},'.format(','.join(d[k][7]))
-        v[8] = '{},'.format(','.join(d[k][8]))
-        print '{}'.format('\t'.join(v))
+        # print(v)
+        v[9] = '{}'.format(','.join(d[k][9]))
+        v[10] = '{}'.format(','.join(d[k][10]))
+        print('{}'.format('\t'.join(v)), file=sys.stdout)
 
 if __name__=="__main__":
     main()

@@ -7,6 +7,7 @@ import { HiddenItemsMessage } from '../TrackMessage';
 
 import { FeatureArranger, PlacedFeatureGroup, PaddingFunc } from '../../../../model/FeatureArranger';
 import { Feature } from '../../../../model/Feature';
+import { SortItemsOptions } from '../../../../model/SortItemsOptions'
 
 const SVG_STYLE = {
     display: "block",
@@ -31,6 +32,8 @@ interface FullDisplayModeProps extends PropsFromTrackContainer {
     options: {
         maxRows: number; // Max number of rows of annotations to render
         hiddenPixels?: number;
+        hideMinimalItems?: boolean;
+        sortItems?: SortItemsOptions;
     };
 
     legend?: JSX.Element; // Override for the default legend element
@@ -58,8 +61,11 @@ class FullDisplayMode extends React.Component<FullDisplayModeProps> {
     }
 
     getHeight(numRows: number): number {
-        const {rowHeight, options} = this.props;
+        const { rowHeight, options } = this.props;
         let rowsToDraw = Math.min(numRows, options.maxRows);
+        if (options.hideMinimalItems) {
+            rowsToDraw -= 1;
+        }
         if (rowsToDraw < 1) {
             rowsToDraw = 1;
         }
@@ -67,10 +73,10 @@ class FullDisplayMode extends React.Component<FullDisplayModeProps> {
     }
 
     render() {
-        const {data, featurePadding, visRegion, width, rowHeight, options, getAnnotationElement} = this.props;
+        const { data, featurePadding, visRegion, width, rowHeight, options, getAnnotationElement } = this.props;
         // Important: it is ok to arrange() every render only because we memoized the function in the constructor.
-        const arrangeResult = this.featureArranger.arrange(data, visRegion, width, 
-            featurePadding, options.hiddenPixels);
+        const arrangeResult = this.featureArranger.arrange(data, visRegion, width,
+            featurePadding, options.hiddenPixels, options.sortItems);
         const height = this.getHeight(arrangeResult.numRowsAssigned);
         const legend = this.props.legend || <TrackLegend height={height} trackModel={this.props.trackModel} />;
         const visualizer = <FullVisualizer
@@ -84,10 +90,10 @@ class FullDisplayMode extends React.Component<FullDisplayModeProps> {
         />;
         // const message = <HiddenItemsMessage numHidden={arrangeResult.numHidden} />;
         const message = <React.Fragment>
-                            <HiddenItemsMessage numHidden={arrangeResult.numHidden} />
-                            {this.props.message}
-                        </React.Fragment>;
-        return <Track {...this.props} legend={legend} visualizer={visualizer} message={message}/>;
+            <HiddenItemsMessage numHidden={arrangeResult.numHidden} />
+            {this.props.message}
+        </React.Fragment>;
+        return <Track {...this.props} legend={legend} visualizer={visualizer} message={message} />;
     }
 }
 
@@ -113,7 +119,7 @@ class FullVisualizer extends React.PureComponent<FullVisualizerProps> {
      * @param {number} i 
      */
     renderAnnotation(placedGroup: PlacedFeatureGroup, i: number) {
-        const {rowHeight, maxRows, getAnnotationElement} = this.props;
+        const { rowHeight, maxRows, getAnnotationElement } = this.props;
         const maxRowIndex = (maxRows || Infinity) - 1;
         // Compute y
         const rowIndex = Math.min(placedGroup.row, maxRowIndex);
@@ -122,11 +128,11 @@ class FullVisualizer extends React.PureComponent<FullVisualizerProps> {
     }
 
     render() {
-        const {placements, width, height} = this.props;
+        const { placements, width, height } = this.props;
         return (
-        <svg width={width} height={height} style={SVG_STYLE} >
-            {placements.map(this.renderAnnotation)}
-        </svg>
+            <svg width={width} height={height} style={SVG_STYLE} >
+                {placements.map(this.renderAnnotation)}
+            </svg>
         );
     }
 }

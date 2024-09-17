@@ -19,14 +19,15 @@ export const AggregatorTypes = {
 
 const aggregateFunctions = {};
 aggregateFunctions[AggregatorTypes.COUNT] = (records: any[]) => records.length;
-aggregateFunctions[AggregatorTypes.SUM] = (records: any[]) => _.sumBy(records, VALUE_PROP_NAME);
+aggregateFunctions[AggregatorTypes.SUM] = (records: any[]) =>
+    records.length > 0 ? _.sumBy(records, VALUE_PROP_NAME) : null;
 // For mean, min, and max; if passed an empty array, returns null
 aggregateFunctions[AggregatorTypes.MEAN] = (records: any[]) =>
     records.length > 0 ? _.meanBy(records, VALUE_PROP_NAME) : null;
 aggregateFunctions[AggregatorTypes.MIN] = (records: any[]) =>
-    _.minBy(records, VALUE_PROP_NAME)[VALUE_PROP_NAME] || null;
+    records.length > 0 ? _.minBy(records, VALUE_PROP_NAME)[VALUE_PROP_NAME] : null;
 aggregateFunctions[AggregatorTypes.MAX] = (records: any[]) =>
-    _.maxBy(records, VALUE_PROP_NAME)[VALUE_PROP_NAME] || null;
+    records.length > 0 ? _.maxBy(records, VALUE_PROP_NAME)[VALUE_PROP_NAME] : null;
 
 aggregateFunctions[AggregatorTypes.IMAGECOUNT] = (records: any[]) => _.sum(records.map((x) => x.images.length));
 
@@ -135,5 +136,34 @@ export class FeatureAggregator {
             }
         }
         return xToFeatures;
+    }
+
+    makeXWindowMap(
+        features: Feature[],
+        viewRegion: DisplayedRegionModel,
+        width: number,
+        useCenter: boolean = false,
+        windowSize: number
+    ): { [x: number]: Feature[] } {
+        const map = {};
+        width = Math.round(width); // Sometimes it's juuust a little bit off from being an int
+        for (let x = 0; x < width; x += windowSize) {
+            // Fill the array with empty arrays
+            // if (x < width) {
+            map[x] = [];
+            // }
+        }
+        const placer = new FeaturePlacer();
+        const placement = placer.placeFeatures(features, viewRegion, width, useCenter);
+        for (const placedFeature of placement) {
+            const startX = Math.max(0, Math.floor(placedFeature.xSpan.start));
+            const endX = Math.min(width - 1, Math.ceil(placedFeature.xSpan.end));
+            for (let x = startX; x <= endX; x++) {
+                if (map.hasOwnProperty(x)) {
+                    map[x].push(placedFeature.feature);
+                }
+            }
+        }
+        return map;
     }
 }

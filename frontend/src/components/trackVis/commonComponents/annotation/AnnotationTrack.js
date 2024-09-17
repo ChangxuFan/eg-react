@@ -6,7 +6,12 @@ import Track from "../Track";
 import NumericalTrack from "../numerical/NumericalTrack";
 
 import { DefaultAggregators } from "../../../../model/FeatureAggregator";
-import { AnnotationDisplayModes, NumericalDisplayModes } from "../../../../model/DisplayModes";
+import {
+    AnnotationDisplayModes,
+    FiberDisplayModes,
+    NumericalDisplayModes,
+    VcfDisplayModes,
+} from "../../../../model/DisplayModes";
 import configOptionMerging from "../configOptionMerging";
 
 export const DEFAULT_OPTIONS = {
@@ -15,6 +20,8 @@ export const DEFAULT_OPTIONS = {
     color2: "red",
     maxRows: 20,
     height: 40, // For density display mode
+    hideMinimalItems: false,
+    sortItems: false,
 };
 const withDefaultOptions = configOptionMerging(DEFAULT_OPTIONS);
 
@@ -23,14 +30,18 @@ const withDefaultOptions = configOptionMerging(DEFAULT_OPTIONS);
  *
  * @author Silas Hsu
  */
-class AnnotationTrack extends React.PureComponent {
+export class AnnotationTrack extends React.PureComponent {
     static propTypes = Object.assign({}, Track.propsFromTrackContainer, {
         /**
          * Features to render.  Simplified since checking is expensive.
          */
         data: PropTypes.array.isRequired, // PropTypes.arrayOf(PropTypes.instanceOf(Feature)).isRequired,
         options: PropTypes.shape({
-            displayMode: PropTypes.oneOf(Object.values(AnnotationDisplayModes)).isRequired, // Display mode
+            displayMode: PropTypes.oneOfType([
+                PropTypes.oneOf(Object.values(AnnotationDisplayModes)),
+                PropTypes.oneOf(Object.values(VcfDisplayModes)),
+                PropTypes.oneOf(Object.values(FiberDisplayModes)),
+            ]).isRequired, // Display mode
             height: PropTypes.number, // Height in density display mode
         }).isRequired,
     });
